@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools", "wheel", "poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "deepad"
+version = "0.0.1"
+description = "Deep learning patch antenna design"
+authors = ["Beck LaBash <labash.b@northeastern.edu>"]
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
+
+[tool.poetry.dependencies]
+python = ">=3.8"
