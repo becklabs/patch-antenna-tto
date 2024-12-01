@@ -1,0 +1,35 @@
+wandb:
+  project: 's11_vae'  
+  log_interval: 1
+  save_interval: 300
+
+device: 'auto'  #  'auto' | 'cpu' | 'cuda' | 'mps'
+seed: 42  
+
+data:
+  data_dir: "data/results/preprocessed_all/"  
+  design_params_file: "design_params.npy"
+  freq_response_file: "freq_response.npy"
+  train_split: 0.8
+
+hyperparameters:
+  num_epochs: 250       
+  batch_size: 32         
+  learning_rate: 0.001   
+
+  recon_criterion: "mse" # mse | s11_reconstruction_loss
+  kld_weight: 0.032
+  kld_warmup_epochs: 100 # sigmoid annealing, 0 for no annealing
+
+model:
+  n_design_params: 3           # Number of design parameters (length, width, feed_x)
+  n_freqs: 1000            # Number of sampled frequency points in the S11 curve
+  latent_dim: 128                   
+
+checkpoint:
+  checkpoint_dir: "checkpoints/s11_vae/"
+  resume_from_checkpoint: False
+  resume_checkpoint: "model_epoch_100.pth"
+
+plots:
+  num_examples: 5  # Number of examples to plot for reconstructed S11 curves
