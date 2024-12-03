@@ -1,10 +1,12 @@
 import yaml
 import torch
+import numpy as np
 import os
 import wandb
 from typing import Dict
 import torch.nn as nn
 import logging
+from deepad.nn.datasets import RectangularPatchDataset
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,8 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
         return model, optimizer, None, None, 0
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
-    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     X_scaler = checkpoint.get("X_scaler", None)
     y_scaler = checkpoint.get("y_scaler", None)
     start_epoch = checkpoint["epoch"]
@@ -84,3 +87,40 @@ def count_parameters(model: nn.Module) -> Dict[str, int]:
         "trainable_params": trainable_params,
         "non_trainable_params": non_trainable_params,
     }
+
+
+def prepare_datasets(design_params, freq_response, config, device):
+    nx, nd = design_params.shape
+    ny, nf, nc = freq_response.shape
+
+    assert nx == ny, "design_params and s11_curves must have the same number of samples"
+    assert (
+        nf == config["model"]["n_freqs"]
+    ), "s11_curves must have the same number of frequency points as specified in the config"
+    assert (
+        nd == config["model"]["n_design_params"]
+    ), "design_params must have the same number of design parameters as specified in the config"
+    assert nc == 2, "s11_curves must have 2 channels (value and frequency)"
+
+    s11_curves = freq_response[:, :, 1]
+
+    np.random.seed(config["seed"])
+    train_inds = np.random.choice(
+        nx, int(nx * config["data"]["train_split"]), replace=False
+    )
+    test_inds = np.setdiff1d(np.arange(nx), train_inds)
+
+    train_dataset = RectangularPatchDataset(
+        design_params=design_params[train_inds],
+        s11_curves=s11_curves[train_inds],
+        curves_device=device,
+    )
+    test_dataset = RectangularPatchDataset(
+        design_params=design_params[test_inds],
+        s11_curves=s11_curves[test_inds],
+        design_params_scaler=train_dataset.design_params_scaler,
+        s11_curves_scaler=train_dataset.s11_curves_scaler,
+        curves_device=device,
+    )
+
+    return train_dataset, test_dataset

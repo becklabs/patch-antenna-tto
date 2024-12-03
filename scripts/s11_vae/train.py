@@ -11,8 +11,8 @@ from deepad.nn.datasets import RectangularPatchDataset
 from deepad.nn.vae import VAE
 from deepad.nn.losses import VAELoss, s11_reconstruction_loss, sigmoid_annealing
 
-from deepad.nn.decoder import FeedForwardDecoder
-from deepad.nn.encoder import FeedForwardEncoder
+from deepad.nn.decoder import FeedForwardDecoder, ConvDecoder
+from deepad.nn.encoder import FeedForwardEncoder, TCNEncoder, ConvEncoder
 
 from deepad.nn.utils import load_config, set_device, load_checkpoint, save_checkpoint
 
@@ -38,7 +38,9 @@ def load_data(config):
     design_params = np.load(
         os.path.join(config["data"]["data_dir"], "design_params.npy")
     )
-    freq_response = np.load(os.path.join(config["data"]["data_dir"], "freq_response.npy"))
+    freq_response = np.load(
+        os.path.join(config["data"]["data_dir"], "freq_response.npy")
+    )
     return design_params, freq_response
 
 
@@ -47,8 +49,12 @@ def prepare_datasets(design_params, freq_response, config, device):
     ny, nf, nc = freq_response.shape
 
     assert nx == ny, "design_params and s11_curves must have the same number of samples"
-    assert nf == config["model"]["n_freqs"], "s11_curves must have the same number of frequency points as specified in the config"
-    assert nd == config["model"]["n_design_params"], "design_params must have the same number of design parameters as specified in the config" 
+    assert (
+        nf == config["model"]["n_freqs"]
+    ), "s11_curves must have the same number of frequency points as specified in the config"
+    assert (
+        nd == config["model"]["n_design_params"]
+    ), "design_params must have the same number of design parameters as specified in the config"
     assert nc == 2, "s11_curves must have 2 channels (value and frequency)"
 
     s11_curves = freq_response[:, :, 1]
@@ -60,47 +66,58 @@ def prepare_datasets(design_params, freq_response, config, device):
     test_inds = np.setdiff1d(np.arange(nx), train_inds)
 
     train_dataset = RectangularPatchDataset(
-        design_params=design_params[train_inds], s11_curves=s11_curves[train_inds], curves_device=device
+        design_params=design_params[train_inds],
+        s11_curves=s11_curves[train_inds],
+        curves_device=device,
     )
     test_dataset = RectangularPatchDataset(
-        design_params=design_params[test_inds], s11_curves=s11_curves[test_inds],
-        design_params_scaler=train_dataset.design_params_scaler,
-        s11_curves_scaler=train_dataset.s11_curves_scaler,
-        curves_device=device,
-    )
-    val_dataset = RectangularPatchDataset(
-        design_params=design_params[test_inds], s11_curves=s11_curves[test_inds],
+        design_params=design_params[test_inds],
+        s11_curves=s11_curves[test_inds],
         design_params_scaler=train_dataset.design_params_scaler,
         s11_curves_scaler=train_dataset.s11_curves_scaler,
         curves_device=device,
     )
 
-    return train_dataset, test_dataset, val_dataset
+    return train_dataset, test_dataset
 
 
-def create_dataloaders(train_dataset, test_dataset, val_dataset, config):
+def create_dataloaders(train_dataset, test_dataset, config):
     train_dataloader = DataLoader(
         train_dataset, batch_size=config["hyperparameters"]["batch_size"], shuffle=True
     )
     test_dataloader = DataLoader(
         test_dataset, batch_size=config["hyperparameters"]["batch_size"]
     )
-    val_dataloader = DataLoader(
-        val_dataset, batch_size=config["hyperparameters"]["batch_size"]
-    )
-    return train_dataloader, test_dataloader, val_dataloader
+    return train_dataloader, test_dataloader
 
 
 def create_model(config, device):
-    encoder = FeedForwardEncoder(
-        input_dim=config["model"]["n_freqs"],
+    # encoder = FeedForwardEncoder(
+    #     input_dim=config["model"]["n_freqs"],
+    #     latent_dim=config["model"]["latent_dim"],
+    # )
+
+    encoder = ConvEncoder(
         latent_dim=config["model"]["latent_dim"],
     )
-    decoder = FeedForwardDecoder(
+
+    # encoder = TCNEncoder(
+    #     channels = [16, 32, 64, 128]
+    # )
+
+    # decoder = FeedForwardDecoder(
+    #     latent_dim=config["model"]["latent_dim"],
+    #     output_length=config["model"]["n_freqs"],
+    # )
+
+    decoder = ConvDecoder(
         latent_dim=config["model"]["latent_dim"],
         output_length=config["model"]["n_freqs"],
     )
-    model = VAE(encoder=encoder, decoder=decoder, latent_dim=config["model"]["latent_dim"])
+
+    model = VAE(
+        encoder=encoder, decoder=decoder, latent_dim=config["model"]["latent_dim"]
+    )
     return model.to(device)
 
 
@@ -115,14 +132,23 @@ def train(
     kld_weight = config["hyperparameters"]["kld_weight"]
     max_kld_weight = config["hyperparameters"]["kld_weight"]
     min_kld_weight = 0.0
-    n_warmup_epochs = config["hyperparameters"].get("kld_warmup_epochs", 0)  # Default to 0 for no scheduling
+    n_warmup_epochs = config["hyperparameters"].get(
+        "kld_warmup_epochs", 0
+    )  # Default to 0 for no scheduling
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=float(config["hyperparameters"]["learning_rate"])
     )
 
-    recon_criterion = nn.MSELoss(reduction="mean") if config["hyperparameters"]["recon_criterion"] == "mse" else s11_reconstruction_loss
-    criterion = VAELoss(kld_weight=config["hyperparameters"]["kld_weight"], recon_criterion=recon_criterion)
+    recon_criterion = (
+        nn.MSELoss(reduction="mean")
+        if config["hyperparameters"]["recon_criterion"] == "mse"
+        else s11_reconstruction_loss
+    )
+    criterion = VAELoss(
+        kld_weight=config["hyperparameters"]["kld_weight"],
+        recon_criterion=recon_criterion,
+    )
 
     if config["checkpoint"]["resume_from_checkpoint"]:
         checkpoint_path = os.path.join(
@@ -132,10 +158,11 @@ def train(
         model, optimizer, _, _, start_epoch = load_checkpoint(
             checkpoint_path, model, optimizer, device
         )
-    
 
     for epoch in range(start_epoch, config["hyperparameters"]["num_epochs"]):
-        kld_weight = sigmoid_annealing(epoch, n_warmup_epochs, min_kld_weight, max_kld_weight)
+        kld_weight = sigmoid_annealing(
+            epoch, n_warmup_epochs, min_kld_weight, max_kld_weight
+        )
 
         model.train()
 
@@ -146,7 +173,9 @@ def train(
         for _, x_batch in train_dataloader:
             optimizer.zero_grad()
             recon_batch, mu, logvar = model(x_batch)
-            recon_loss, kl_loss, total_loss = criterion(recon_batch.squeeze(-1), x_batch, mu, logvar, kld_weight)
+            recon_loss, kl_loss, total_loss = criterion(
+                recon_batch.squeeze(-1), x_batch, mu, logvar, kld_weight
+            )
             total_loss.backward()
             optimizer.step()
 
@@ -158,7 +187,9 @@ def train(
         avg_train_kl_loss = running_kl_loss / len(train_dataloader.dataset)
         avg_train_loss = running_total_loss / len(train_dataloader.dataset)
 
-        avg_test_recon_loss, avg_test_kl_loss, avg_test_loss = evaluate(model, test_dataloader, criterion)
+        avg_test_recon_loss, avg_test_kl_loss, avg_test_loss = evaluate(
+            model, test_dataloader, criterion
+        )
 
         if epoch % config["wandb"]["log_interval"] == 0:
             wandb.log(
@@ -170,6 +201,7 @@ def train(
                     "test_recon_loss": avg_test_recon_loss,
                     "test_kl_loss": avg_test_kl_loss,
                     "test_loss": avg_test_loss,
+                    "kld_weight": kld_weight,   
                 }
             )
 
@@ -178,8 +210,8 @@ def train(
                 model=model,
                 optimizer=optimizer,
                 epoch=epoch,
-                design_params_scaler=train_dataloader.dataset.design_params_scaler,
-                s11_curves_scaler=train_dataloader.dataset.s11_curves_scaler,
+                X_scaler=None,
+                y_scaler=train_dataloader.dataset.s11_curves_scaler,
                 config=config,
             )
 
@@ -194,6 +226,7 @@ def train(
             avg_test_kl_loss,
         )
 
+
 def evaluate(model, dataloader, criterion):
     model.eval()
 
@@ -204,7 +237,9 @@ def evaluate(model, dataloader, criterion):
     with torch.no_grad():
         for _, x_batch in dataloader:
             recon_batch, mu, logvar = model(x_batch)
-            recon_loss, kl_loss, total_loss = criterion(recon_batch.squeeze(-1), x_batch, mu, logvar)
+            recon_loss, kl_loss, total_loss = criterion(
+                recon_batch.squeeze(-1), x_batch, mu, logvar
+            )
 
             running_recon_loss += recon_loss.item()
             running_kl_loss += kl_loss.item()
@@ -215,6 +250,7 @@ def evaluate(model, dataloader, criterion):
     avg_total_loss = running_total_loss / len(dataloader.dataset)
 
     return avg_recon_loss, avg_kl_loss, avg_total_loss
+
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -229,14 +265,27 @@ if __name__ == "__main__":
     )
 
     design_params, freq_response = load_data(config=config)
-    train_dataset, test_dataset, val_dataset = prepare_datasets(design_params=design_params, freq_response=freq_response, config=config, device=device)
-    train_dataloader, test_dataloader, val_dataloader = create_dataloaders(
-        train_dataset=train_dataset, test_dataset=test_dataset, val_dataset=val_dataset, config=config
+    train_dataset, test_dataset = prepare_datasets(
+        design_params=design_params,
+        freq_response=freq_response,
+        config=config,
+        device=device,
+    )
+    train_dataloader, test_dataloader = create_dataloaders(
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
+        config=config,
     )
 
     model = create_model(config=config, device=device)
     wandb.watch(model)
 
-    train(model=model, train_dataloader=train_dataloader, test_dataloader=test_dataloader, config=config, device=device)
+    train(
+        model=model,
+        train_dataloader=train_dataloader,
+        test_dataloader=test_dataloader,
+        config=config,
+        device=device,
+    )
 
     wandb.finish()

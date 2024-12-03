@@ -45,6 +45,29 @@ class TCNEncoder(nn.Module):
         x = self.encoder(x)
         return x  # Output shape: (batch_size, latent_dim)
 
+class ConvEncoder(nn.Module):
+    def __init__(self, latent_dim=64):
+        super(ConvEncoder, self).__init__()
+        
+        self.encoder = nn.Sequential(
+            nn.Conv1d(in_channels=1, out_channels=32, kernel_size=7, stride=2, padding=3),  # Output: (batch_size, 32, 500)
+            nn.ReLU(),
+            nn.Conv1d(32, 64, kernel_size=5, stride=2, padding=2),  # Output: (batch_size, 64, 250)
+            nn.ReLU(),
+            nn.Conv1d(64, 128, kernel_size=5, stride=2, padding=2),  # Output: (batch_size, 128, 125)
+            nn.ReLU(),
+            nn.Conv1d(128, 256, kernel_size=5, stride=2, padding=2),  # Output: (batch_size, 256, 63)
+            nn.ReLU(),
+            nn.Conv1d(256, 512, kernel_size=5, stride=2, padding=2),  # Output: (batch_size, 512, 32)
+            nn.ReLU(),
+            nn.Flatten(),  # Output: (batch_size, 512 * 32)
+            nn.Linear(512 * 32, latent_dim * 2)  # Output: (batch_size, latent_dim * 2)
+        )
+
+    def forward(self, x):
+        x = x.unsqueeze(1)  # Add channel dimension
+        x = self.encoder(x)
+        return x
 
 class FeedForwardEncoder(nn.Module):
     def __init__(self, input_dim: int, latent_dim: int):
