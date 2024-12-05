@@ -11,12 +11,13 @@ class GELU(nn.Module):
         return 0.5 * x * (1 + torch.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * torch.pow(x, 3))))
 
 class ConvDecoder(nn.Module):
-    def __init__(self, latent_dim, output_length=1000, output_channels=1):
+    def __init__(self, latent_dim, output_length=1000, output_channels=1, transpose=True):
         super(ConvDecoder, self).__init__()
         self.latent_dim = latent_dim
         self.output_length = output_length
         self.output_channels = output_channels
         self.fc = nn.Linear(self.latent_dim, 64 * 4)
+        self.transpose = transpose
 
         self.decoder = nn.Sequential(
             nn.ConvTranspose1d(
@@ -70,7 +71,8 @@ class ConvDecoder(nn.Module):
         x = x.view(-1, 64, 4)  # (batch_size, 64, 4)
         x = self.decoder(x)  # (batch_size, output_channels, output_length)
 
-        x = x.transpose(1, 2) # (batch_size, output_length, output_channels)
+        if self.transpose:
+            x = x.transpose(1, 2) # (batch_size, output_length, output_channels)
         return x
 
 class ConvDecoderSimple(nn.Module):

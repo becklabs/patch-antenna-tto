@@ -59,10 +59,21 @@ class RectangularPatchDataset(Dataset):
 
         self.design_device = design_device
         self.curves_device = curves_device
-        self.design_params = torch.FloatTensor(design_params_scaled).to(
-            self.design_device
-        )
-        self.s11_curves = torch.FloatTensor(s11_curves_scaled).to(self.curves_device)
+
+        if isinstance(design_params_scaled, np.ndarray):
+            self.design_params = torch.from_numpy(design_params_scaled).to(
+                torch.float32
+            )
+        else:
+            self.design_params = design_params_scaled.to(torch.float32)
+
+        if isinstance(s11_curves_scaled, np.ndarray):
+            self.s11_curves = torch.from_numpy(s11_curves_scaled).to(torch.float32)
+        else:
+            self.s11_curves = s11_curves_scaled.to(torch.float32)
+
+        self.design_params = self.design_params.to(self.design_device)
+        self.s11_curves = self.s11_curves.to(self.curves_device)
 
     def __len__(self):
         return len(self.design_params)

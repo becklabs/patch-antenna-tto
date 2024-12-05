@@ -1,0 +1,36 @@
+wandb:
+  project: 's11_reconstruction'  
+  log_interval: 1
+  save_interval: 50
+
+device: 'auto'  # 'auto' | 'cpu' | 'cuda' | 'mps'
+seed: 42  
+
+data:
+  # data_dir: "data/results/preprocessed_all/"  
+  data_dir: "data/results/sim_results2/preprocessed_all"  
+  design_params_file: "design_params.npy"
+  freq_response_file: "freq_response.npy"
+  train_split: 0.8
+
+hyperparameters:
+  num_epochs: 500       
+  batch_size: 64         
+  learning_rate: 0.005
+
+  beta: 0.5             # Weight for the beta-NLL loss
+  lambda1: 1.0            # Weight for the first derivative loss
+  lambda2: 1.0            # Weight for the second derivative loss
+  lambda_smooth: 1.0      # Weight for the smoothness term
+
+model:
+  n_design_params: 3       # Number of design parameters (length, width, feed_x)
+  n_freqs: 1000            # Number of sampled frequency points in the S11 curve
+
+checkpoint:
+  checkpoint_dir: "checkpoints/forward_model/v0/"
+  resume_from_checkpoint: False
+  resume_checkpoint: "model_epoch_49.pth"
+
+plots:
+  num_examples: 10  # Number of examples to plot for reconstructed designs

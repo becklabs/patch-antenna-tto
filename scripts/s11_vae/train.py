@@ -5,16 +5,22 @@ import torch
 import wandb
 import torch.nn as nn
 import argparse
-from torch.utils.data import DataLoader
 
-from deepad.nn.datasets import RectangularPatchDataset
 from deepad.nn.vae import VAE
 from deepad.nn.losses import VAELoss, s11_reconstruction_loss, sigmoid_annealing
 
 from deepad.nn.decoder import FeedForwardDecoder, ConvDecoder
 from deepad.nn.encoder import FeedForwardEncoder, TCNEncoder, ConvEncoder
 
-from deepad.nn.utils import load_config, set_device, load_checkpoint, save_checkpoint
+from deepad.nn.utils import (
+    load_config,
+    set_device,
+    load_checkpoint,
+    save_checkpoint,
+    prepare_datasets,
+    load_data,
+    create_dataloaders,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -32,63 +38,6 @@ def parse_arguments():
         help="Path to the configuration file",
     )
     return parser.parse_args()
-
-
-def load_data(config):
-    design_params = np.load(
-        os.path.join(config["data"]["data_dir"], "design_params.npy")
-    )
-    freq_response = np.load(
-        os.path.join(config["data"]["data_dir"], "freq_response.npy")
-    )
-    return design_params, freq_response
-
-
-def prepare_datasets(design_params, freq_response, config, device):
-    nx, nd = design_params.shape
-    ny, nf, nc = freq_response.shape
-
-    assert nx == ny, "design_params and s11_curves must have the same number of samples"
-    assert (
-        nf == config["model"]["n_freqs"]
-    ), "s11_curves must have the same number of frequency points as specified in the config"
-    assert (
-        nd == config["model"]["n_design_params"]
-    ), "design_params must have the same number of design parameters as specified in the config"
-    assert nc == 2, "s11_curves must have 2 channels (value and frequency)"
-
-    s11_curves = freq_response[:, :, 1]
-
-    np.random.seed(config["seed"])
-    train_inds = np.random.choice(
-        nx, int(nx * config["data"]["train_split"]), replace=False
-    )
-    test_inds = np.setdiff1d(np.arange(nx), train_inds)
-
-    train_dataset = RectangularPatchDataset(
-        design_params=design_params[train_inds],
-        s11_curves=s11_curves[train_inds],
-        curves_device=device,
-    )
-    test_dataset = RectangularPatchDataset(
-        design_params=design_params[test_inds],
-        s11_curves=s11_curves[test_inds],
-        design_params_scaler=train_dataset.design_params_scaler,
-        s11_curves_scaler=train_dataset.s11_curves_scaler,
-        curves_device=device,
-    )
-
-    return train_dataset, test_dataset
-
-
-def create_dataloaders(train_dataset, test_dataset, config):
-    train_dataloader = DataLoader(
-        train_dataset, batch_size=config["hyperparameters"]["batch_size"], shuffle=True
-    )
-    test_dataloader = DataLoader(
-        test_dataset, batch_size=config["hyperparameters"]["batch_size"]
-    )
-    return train_dataloader, test_dataloader
 
 
 def create_model(config, device):
@@ -201,7 +150,7 @@ def train(
                     "test_recon_loss": avg_test_recon_loss,
                     "test_kl_loss": avg_test_kl_loss,
                     "test_loss": avg_test_loss,
-                    "kld_weight": kld_weight,   
+                    "kld_weight": kld_weight,
                 }
             )
 
@@ -269,7 +218,8 @@ if __name__ == "__main__":
         design_params=design_params,
         freq_response=freq_response,
         config=config,
-        device=device,
+        curves_device=device,
+        design_device="cpu",
     )
     train_dataloader, test_dataloader = create_dataloaders(
         train_dataset=train_dataset,

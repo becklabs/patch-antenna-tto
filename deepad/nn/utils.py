@@ -3,10 +3,11 @@ import torch
 import numpy as np
 import os
 import wandb
-from typing import Dict
+from typing import Dict, Tuple
 import torch.nn as nn
 import logging
 from deepad.nn.datasets import RectangularPatchDataset
+from torch.utils.data import DataLoader
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,25 @@ def set_device(device_preference):
     return torch.device(device_preference)
 
 
-def save_checkpoint(model, optimizer, epoch, X_scaler, y_scaler, config):
+def save_checkpoint(
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    epoch: int,
+    X_scaler: object,
+    y_scaler: object,
+    config: dict
+) -> None:
+    """
+    Save model checkpoint to disk.
+
+    Args:
+        model (nn.Module): Model to save.
+        optimizer (torch.optim.Optimizer): Optimizer to save.
+        epoch (int): Current epoch number.
+        X_scaler (object): Scaler for design parameters.
+        y_scaler (object): Scaler for S11 curves.
+        config (dict): Configuration dictionary containing checkpoint settings.
+    """
     checkpoint_dir = config["checkpoint"]["checkpoint_dir"]
     os.makedirs(checkpoint_dir, exist_ok=True)
     checkpoint_path = os.path.join(checkpoint_dir, f"model_epoch_{epoch}.pth")
@@ -88,8 +107,40 @@ def count_parameters(model: nn.Module) -> Dict[str, int]:
         "non_trainable_params": non_trainable_params,
     }
 
+def load_data(config):
+    design_params = np.load(
+        os.path.join(config["data"]["data_dir"], "design_params.npy")
+    )
+    freq_response = np.load(
+        os.path.join(config["data"]["data_dir"], "freq_response.npy")
+    )
+    return design_params, freq_response
 
-def prepare_datasets(design_params, freq_response, config, device):
+
+def prepare_datasets(
+    design_params: np.ndarray,
+    freq_response: np.ndarray,
+    config: dict,
+    curves_device: str,
+    design_device: str,
+    s11_curves_scaler: object = None,
+    design_params_scaler: object = None,
+) -> Tuple[RectangularPatchDataset, RectangularPatchDataset]:
+    """
+    Prepare training and testing datasets from input data.
+
+    Args:
+        design_params (np.ndarray): Array of design parameters.
+        freq_response (np.ndarray): Array of frequency responses.
+        config (dict): Configuration dictionary.
+        curves_device (str): Device for S11 curves.
+        design_device (str): Device for design parameters.
+        s11_curves_scaler (object, optional): Scaler for S11 curves. Defaults to None.
+        design_params_scaler (object, optional): Scaler for design parameters. Defaults to None.
+
+    Returns:
+        tuple[RectangularPatchDataset, RectangularPatchDataset]: Training and testing datasets.
+    """
     nx, nd = design_params.shape
     ny, nf, nc = freq_response.shape
 
@@ -110,17 +161,52 @@ def prepare_datasets(design_params, freq_response, config, device):
     )
     test_inds = np.setdiff1d(np.arange(nx), train_inds)
 
+    if s11_curves_scaler is not None:
+        s11_curves_scaler.fit(s11_curves[train_inds])
+
+    if design_params_scaler is not None:
+        design_params_scaler.fit(design_params[train_inds])
+
     train_dataset = RectangularPatchDataset(
         design_params=design_params[train_inds],
         s11_curves=s11_curves[train_inds],
-        curves_device=device,
+        design_params_scaler=design_params_scaler,
+        s11_curves_scaler=s11_curves_scaler,
+        curves_device=curves_device,
+        design_device=design_device,
     )
     test_dataset = RectangularPatchDataset(
         design_params=design_params[test_inds],
         s11_curves=s11_curves[test_inds],
         design_params_scaler=train_dataset.design_params_scaler,
         s11_curves_scaler=train_dataset.s11_curves_scaler,
-        curves_device=device,
+        curves_device=curves_device,
+        design_device=design_device,
     )
 
     return train_dataset, test_dataset
+
+
+def create_dataloaders(
+    train_dataset: RectangularPatchDataset,
+    test_dataset: RectangularPatchDataset,
+    config: dict
+) -> Tuple[DataLoader, DataLoader]:
+    """
+    Create DataLoader objects for training and testing.
+
+    Args:
+        train_dataset (RectangularPatchDataset): Training dataset.
+        test_dataset (RectangularPatchDataset): Testing dataset.
+        config (dict): Configuration dictionary containing hyperparameters.
+
+    Returns:
+        tuple[DataLoader, DataLoader]: Training and testing dataloaders.
+    """
+    train_dataloader = DataLoader(
+        train_dataset, batch_size=config["hyperparameters"]["batch_size"], shuffle=True
+    )
+    test_dataloader = DataLoader(
+        test_dataset, batch_size=config["hyperparameters"]["batch_size"]
+    )
+    return train_dataloader, test_dataloader
