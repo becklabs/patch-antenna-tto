@@ -6,14 +6,13 @@ import torch
 import torch.nn as nn
 
 import wandb
-from deepad.nn.decoder import ConvDecoder, FeedForwardDecoder
-from deepad.nn.encoder import ConvEncoder, FeedForwardEncoder
-from deepad.nn.losses import (VAELoss, s11_reconstruction_loss,
-                              sigmoid_annealing)
+from deepad.nn.decoder import ConvDecoder, SimpleFeedForwardDecoder
+from deepad.nn.encoder import ConvEncoder, SimpleFeedForwardEncoder
+from deepad.nn.losses import AdversarialVAELoss, sigmoid_annealing
 from deepad.nn.utils import (create_dataloaders, load_checkpoint, load_config,
                              load_data, prepare_datasets, save_checkpoint,
                              set_device)
-from deepad.nn.vae import CVAE
+from deepad.nn.vae import AdversarialVAE
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -35,29 +34,39 @@ def parse_arguments():
 
 def create_model(config, device):
     condition_head = ConvEncoder(
-        latent_dim=int(config["model"]["encoder"]["condition_hidden_dim"] / 2),
+        latent_dim=int(config["model"]["decoder"]["condition_features"] / 2),
     )
 
-    encoder = FeedForwardEncoder(
-        input_dim=config["model"]["n_design_params"]
-        + config["model"]["encoder"]["condition_hidden_dim"],
-        latent_dim=config["model"]["latent_dim"],
+    encoder = SimpleFeedForwardEncoder(
+        x_dim=config["model"]["n_design_params"],
+        latent_dim=config["model"]["latent_dim"] * 2,
     )
 
-    decoder = FeedForwardDecoder(
+    decoder = SimpleFeedForwardDecoder(
         latent_dim=config["model"]["latent_dim"]
-        + config["model"]["encoder"]["condition_hidden_dim"],
+        + config["model"]["decoder"]["condition_features"],
         output_length=config["model"]["n_design_params"],
     )
 
-    model = CVAE(
+    discriminator = ConvDecoder(
+        latent_dim=config["model"]["latent_dim"],
+        output_length=config["model"]["n_freqs"],
+        output_channels=1,
+        transpose=True,
+    )
+
+    cvae = AdversarialVAE(
         encoder=encoder,
         condition_head=condition_head,
         decoder=decoder,
+        discriminator=discriminator,
         latent_dim=config["model"]["latent_dim"],
     )
-    return model.to(device)
 
+    return cvae.to(device)
+
+def tracker_avg(tracker, key):
+    return tracker[key]['sum'] / max(tracker[key]['count'], 1)
 
 def train(
     model,
@@ -72,14 +81,23 @@ def train(
     min_kld_weight = 0.0
     n_warmup_epochs = config["hyperparameters"].get("kld_warmup_epochs", 0)
 
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=float(config["hyperparameters"]["learning_rate"])
+    optimizer_dec = torch.optim.Adam(
+        model.decoder_params(), lr=float(config["hyperparameters"]["learning_rate"])
     )
 
-    recon_criterion = nn.MSELoss(reduction="sum")
-    criterion = VAELoss(
+    optimizer_disc = torch.optim.Adam(
+        model.discriminator_params(), lr=float(config["hyperparameters"]["learning_rate"])
+    )
+
+    optimizer_enc = torch.optim.Adam(
+        model.encoder_params(), lr=float(config["hyperparameters"]["learning_rate"])
+    )
+
+    criterion = AdversarialVAELoss(
         kld_weight=config["hyperparameters"]["kld_weight"],
-        recon_criterion=recon_criterion,
+        adversarial_weight=config["hyperparameters"]["adversarial_weight"],
+        recon_x_criterion=nn.MSELoss(reduction="mean"),
+        recon_y_criterion=nn.MSELoss(reduction="mean"),
     )
 
     if config["checkpoint"]["resume_from_checkpoint"]:
@@ -87,39 +105,82 @@ def train(
             config["checkpoint"]["checkpoint_dir"],
             config["checkpoint"]["resume_checkpoint"],
         )
-        model, optimizer, _, _, start_epoch = load_checkpoint(
-            checkpoint_path, model, optimizer, device
+        model, _, _, _, start_epoch = load_checkpoint(
+            checkpoint_path, model, None, device
         )
 
     for epoch in range(start_epoch, config["hyperparameters"]["num_epochs"]):
+        loss_trackers = {
+            'recon': {'sum': 0.0, 'count': 0},
+            'kl': {'sum': 0.0, 'count': 0},
+            'y_hat': {'sum': 0.0, 'count': 0},
+            'adversarial': {'sum': 0.0, 'count': 0},
+            'encoder': {'sum': 0.0, 'count': 0},
+            'vae': {'sum': 0.0, 'count': 0},
+        }
+
         kld_weight = sigmoid_annealing(
             epoch, n_warmup_epochs, min_kld_weight, max_kld_weight
         )
 
         model.train()
-        running_recon_loss = 0.0
-        running_kl_loss = 0.0
-        running_total_loss = 0.0
 
-        for x_batch, condition in train_dataloader:
-            optimizer.zero_grad()
-            recon_batch, mu, logvar = model(x_batch, condition)
-            recon_batch = recon_batch.squeeze(-1)
-            recon_loss, kl_loss, total_loss = criterion(
-                recon_batch, x_batch, mu, logvar, kld_weight
+        for i, (x_batch, condition) in enumerate(train_dataloader):
+            optimizer_dec.zero_grad()
+            optimizer_enc.zero_grad()
+            optimizer_disc.zero_grad()
+
+            recon_x, y_hat, mu, logvar = model(x_batch, condition)
+
+            recon_x_loss, y_hat_loss, adversarial_loss, kl_loss = criterion(
+                recon_x, x_batch, y_hat, condition, mu, logvar, kld_weight=kld_weight
             )
-            total_loss.backward()
-            optimizer.step()
 
-            running_recon_loss += recon_loss.item()
-            running_kl_loss += kl_loss.item()
-            running_total_loss += total_loss.item()
+            loss_trackers['recon']['sum'] += recon_x_loss.item()
+            loss_trackers['recon']['count'] += 1
 
-        avg_train_recon_loss = running_recon_loss / len(train_dataloader.dataset)
-        avg_train_kl_loss = running_kl_loss / len(train_dataloader.dataset)
-        avg_train_loss = running_total_loss / len(train_dataloader.dataset)
+            loss_trackers['kl']['sum'] += kl_loss.item()
+            loss_trackers['kl']['count'] += 1
 
-        avg_test_recon_loss, avg_test_kl_loss, avg_test_loss = evaluate(
+            loss_trackers['y_hat']['sum'] += y_hat_loss.item()
+            loss_trackers['y_hat']['count'] += 1
+
+            loss_trackers['adversarial']['sum'] += adversarial_loss.item()
+            loss_trackers['adversarial']['count'] += 1
+
+            # VAE Update
+            if (i // 10) % 2 == 0: # i = n + 0,1,2,3,4,5,6,7,8,9
+                vae_loss = recon_x_loss + kl_loss
+                vae_loss.backward()
+                optimizer_dec.step()
+                optimizer_enc.step()
+
+                loss_trackers['vae']['sum'] += vae_loss.item()
+                loss_trackers['vae']['count'] += 1
+
+            # Discriminator Update
+            elif (i // 5) % 2 == 0: # i = n + 10,11,12,13,14
+                y_hat_loss.backward()
+                optimizer_disc.step()
+
+            # Encoder Update
+            else: # i = n + 15,16,17,18,19
+                encoder_loss = adversarial_loss + kl_loss
+                encoder_loss.backward()
+                optimizer_enc.step()
+
+                loss_trackers['encoder']['sum'] += encoder_loss.item()
+                loss_trackers['encoder']['count'] += 1
+
+
+        avg_train_recon_loss = tracker_avg(loss_trackers, 'recon')
+        avg_train_kl_loss = tracker_avg(loss_trackers, 'kl')
+        avg_train_y_hat_loss = tracker_avg(loss_trackers, 'y_hat')
+        avg_train_adversarial_loss = tracker_avg(loss_trackers, 'adversarial')
+        avg_train_encoder_loss = tracker_avg(loss_trackers, 'encoder')
+        avg_train_vae_loss = tracker_avg(loss_trackers, 'vae')
+
+        test_metrics = evaluate(
             model, test_dataloader, criterion, kld_weight
         )
 
@@ -129,59 +190,83 @@ def train(
                     "epoch": epoch,
                     "train_recon_loss": avg_train_recon_loss,
                     "train_kl_loss": avg_train_kl_loss,
-                    "train_loss": avg_train_loss,
-                    "test_recon_loss": avg_test_recon_loss,
-                    "test_kl_loss": avg_test_kl_loss,
-                    "test_loss": avg_test_loss,
+                    "train_y_hat_loss": avg_train_y_hat_loss,
+                    "train_adversarial_loss": avg_train_adversarial_loss,
+                    "train_encoder_loss": avg_train_encoder_loss,
+                    "train_vae_loss": avg_train_vae_loss,
+                    "test_recon_loss": test_metrics["recon_loss"],
+                    "test_kl_loss": test_metrics["kl_loss"],
+                    "test_y_hat_loss": test_metrics["y_hat_loss"],
+                    "test_adversarial_loss": test_metrics["adversarial_loss"],
                     "kld_weight": kld_weight,
                 }
             )
 
+        logger.info(
+            "Epoch %d: Train VAE Loss: %.4f (Recon: %.4f, KL: %.4f), "
+            "Y-hat Loss: %.4f, Adversarial Loss: %.4f, Encoder Loss: %.4f | "
+            "Test VAE Loss: %.4f (Recon: %.4f, KL: %.4f), Y-hat Loss: %.4f, Adversarial Loss: %.4f",
+            epoch,
+            avg_train_vae_loss,
+            avg_train_recon_loss,
+            avg_train_kl_loss,
+            avg_train_y_hat_loss,
+            avg_train_adversarial_loss,
+            avg_train_encoder_loss,
+            test_metrics["vae_loss"],
+            test_metrics["recon_loss"],
+            test_metrics["kl_loss"],
+            test_metrics["y_hat_loss"],
+            test_metrics["adversarial_loss"],
+        )
+
         if (epoch + 1) % config["wandb"]["save_interval"] == 0:
             save_checkpoint(
                 model=model,
-                optimizer=optimizer,
+                optimizer=optimizer_dec,
                 epoch=epoch,
                 X_scaler=train_dataloader.dataset.design_params_scaler,
                 y_scaler=train_dataloader.dataset.s11_curves_scaler,
                 config=config,
             )
 
-        logger.info(
-            "Epoch %d: Train Loss: %.4f (Recon: %.4f, KL: %.4f), Test Loss: %.4f (Recon: %.4f, KL: %.4f)",
-            epoch,
-            avg_train_loss,
-            avg_train_recon_loss,
-            avg_train_kl_loss,
-            avg_test_loss,
-            avg_test_recon_loss,
-            avg_test_kl_loss,
-        )
-
 
 def evaluate(model, dataloader, criterion, kld_weight):
     model.eval()
     running_recon_loss = 0.0
+    running_y_hat_loss = 0.0
+    running_adversarial_loss = 0.0
+
     running_kl_loss = 0.0
-    running_total_loss = 0.0
+    running_vae_loss = 0.0
+    running_encoder_loss = 0.0
 
     with torch.no_grad():
         for x_batch, condition in dataloader:
-            recon_batch, mu, logvar = model(x_batch, condition)
-            recon_batch = recon_batch.squeeze(-1)
-            recon_loss, kl_loss, total_loss = criterion(
-                recon_batch, x_batch, mu, logvar, kld_weight
+            recon_x, y_hat, mu, logvar = model(x_batch, condition)
+            
+            recon_x_loss, y_hat_loss, adversarial_loss, kl_loss = criterion(
+                recon_x, x_batch, y_hat, condition, mu, logvar, kld_weight=kld_weight
             )
+            
+            vae_loss = recon_x_loss + kl_loss
+            encoder_loss = adversarial_loss + kl_loss
 
-            running_recon_loss += recon_loss.item()
+            running_recon_loss += recon_x_loss.item()
             running_kl_loss += kl_loss.item()
-            running_total_loss += total_loss.item()
+            running_y_hat_loss += y_hat_loss.item()
+            running_adversarial_loss += adversarial_loss.item()
+            running_vae_loss += vae_loss.item()
+            running_encoder_loss += encoder_loss.item()
 
-    avg_recon_loss = running_recon_loss / len(dataloader.dataset)
-    avg_kl_loss = running_kl_loss / len(dataloader.dataset)
-    avg_total_loss = running_total_loss / len(dataloader.dataset)
-
-    return avg_recon_loss, avg_kl_loss, avg_total_loss
+    return {
+        "recon_loss": running_recon_loss / len(dataloader),
+        "kl_loss": running_kl_loss / len(dataloader),
+        "y_hat_loss": running_y_hat_loss / len(dataloader),
+        "adversarial_loss": running_adversarial_loss / len(dataloader),
+        "vae_loss": running_vae_loss / len(dataloader),
+        "encoder_loss": running_encoder_loss / len(dataloader),
+    }
 
 
 if __name__ == "__main__":
@@ -211,7 +296,7 @@ if __name__ == "__main__":
     )
 
     model = create_model(config=config, device=device)
-    wandb.watch(model)
+    logger.info("Model info: %s", model)
 
     train(
         model=model,

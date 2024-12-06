@@ -1,0 +1,40 @@
+wandb:
+  project: 'design_cvae'  
+  log_interval: 1
+  save_interval: 50
+
+device: 'auto'  # 'auto' | 'cpu' | 'cuda' | 'mps'
+seed: 42  
+
+data:
+  data_dir: "data/results/preprocessed_all/"  
+  design_params_file: "design_params.npy"
+  freq_response_file: "freq_response.npy"
+  train_split: 0.8
+
+hyperparameters:
+  num_epochs: 250       
+  batch_size: 32        
+  learning_rate: 0.001   
+  kld_warmup_epochs: 100
+
+  recon_criterion: "mse"
+  kld_weight: 0.016
+  adversarial_weight: 0.1
+
+model:
+  decoder:
+    condition_features: 64 # Output dimension of the condition head
+
+  n_design_params: 3           # Number of design parameters (length, width, feed_x)
+  n_freqs: 1000               # Number of sampled frequency points in the S11 curve
+
+  latent_dim: 16              # Dimension of the latent space
+
+checkpoint:
+  checkpoint_dir: "checkpoints/design_cvae/conv_v1/"
+  resume_from_checkpoint: False
+  resume_checkpoint: "model_epoch_249.pth"
+
+plots:
+  num_examples: 10  # Number of examples to plot for reconstructed designs

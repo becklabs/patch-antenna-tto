@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-import logging
 from typing import Optional
 
 
@@ -215,3 +214,63 @@ class VAELoss(nn.Module):
         total_loss = recon_loss + kld_loss
 
         return recon_loss, kld_loss, total_loss
+
+
+class AdversarialVAELoss(nn.Module):
+    def __init__(
+        self,
+        kld_weight: float = 1.0,
+        adversarial_weight: float = 1.0,
+        recon_x_criterion: nn.Module = nn.MSELoss(reduction="mean"),
+        recon_y_criterion: nn.Module = nn.MSELoss(reduction="mean"),
+    ):
+        super(AdversarialVAELoss, self).__init__()
+        self.kld_weight = kld_weight
+        self.adversarial_weight = adversarial_weight
+        self.recon_x_criterion = recon_x_criterion
+        self.recon_y_criterion = recon_y_criterion
+
+    def forward(
+        self,
+        recon_x: torch.Tensor,
+        x: torch.Tensor,
+        recon_y: torch.Tensor,
+        y: torch.Tensor,
+        mu: torch.Tensor,
+        logvar: torch.Tensor,
+        kld_weight: Optional[float] = None,
+        adversarial_weight: Optional[float] = None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute Adversarial VAE loss: reconstruction loss + KL divergence + adversarial loss.
+        https://archives.ismir.net/ismir2020/paper/000099.pdf
+
+        Args:
+            recon_x: Reconstructed input
+            x: Original input
+            recon_y: Reconstructed condition from discriminator
+            y: True condition
+            mu: Mean of latent distribution
+            logvar: Log variance of latent distribution
+
+        Returns:
+            Tuple containing:
+            - recon_x_loss: Reconstruction loss for x
+            - recon_y_loss: Reconstruction loss for condition y
+            - kld_loss: KL divergence loss (batchmean)
+        """
+        recon_x_loss = self.recon_x_criterion(recon_x, x)  # Reconstruction loss on x
+        recon_y_loss = self.recon_y_criterion(recon_y, y)  # Reconstruction loss on y
+        adversarial_loss = -recon_y_loss # Adversarial loss on y
+
+        kld_loss = torch.mean(
+            -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1), dim=0
+        )  # KL divergence between q(z|x) and p(z)
+
+        kld_weight = kld_weight or self.kld_weight
+        adversarial_weight = adversarial_weight or self.adversarial_weight
+
+        kld_loss = kld_loss * kld_weight
+        adversarial_loss = adversarial_loss * adversarial_weight
+
+        return recon_x_loss, recon_y_loss, adversarial_loss, kld_loss

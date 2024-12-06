@@ -209,3 +209,28 @@ class FeedForwardDecoder(nn.Module):
         x = self.decoder(x) # (batch_size, output_length)
         x = x.unsqueeze(-1) # (batch_size, output_length, 1)
         return x
+
+class SimpleFeedForwardDecoder(nn.Module):
+    def __init__(self, latent_dim, output_length=1000, output_channels=1):
+        super(SimpleFeedForwardDecoder, self).__init__()
+        self.latent_dim = latent_dim
+        self.output_length = output_length
+        self.output_channels = output_channels
+
+        self.decoder = nn.Sequential(
+            nn.Linear(self.latent_dim, 256),
+            nn.GELU(),
+            nn.Linear(256, 256),
+            nn.GELU(),
+            nn.Linear(256, 64),
+            nn.GELU(),
+            nn.Linear(64, 16),
+            nn.GELU(),
+            nn.Linear(16, output_length),
+        )
+
+    def forward(self, x):
+        # x: (batch_size, latent_dim)
+        x = self.decoder(x) # (batch_size, output_length)
+        x = x.unsqueeze(-1) # (batch_size, output_length, 1)
+        return x

@@ -81,3 +81,15 @@ class FeedForwardEncoder(nn.Module):
 
     def forward(self, x):
         return self.encoder(x)
+
+class SimpleFeedForwardEncoder(nn.Module):
+    def __init__(self, x_dim: int, latent_dim: int):
+        super(SimpleFeedForwardEncoder, self).__init__()
+        self.encoder = nn.Sequential(   
+            nn.Linear(x_dim, 16),
+            nn.LeakyReLU(0.2),
+            nn.Linear(16, latent_dim),
+        )
+
+    def forward(self, x):
+        return self.encoder(x)
