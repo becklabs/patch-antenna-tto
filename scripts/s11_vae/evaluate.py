@@ -2,47 +2,11 @@ import os
 import torch    
 import numpy as np
 import matplotlib.pyplot as plt
-from deepad.nn.utils import load_config, set_device, load_checkpoint
-from deepad.nn.datasets import RectangularPatchDataset
+from deepad.nn.utils import load_config, set_device, load_checkpoint, prepare_datasets
 from deepad.nn.vae import VAE
 from deepad.nn.decoder import FeedForwardDecoder, ConvDecoder
 from deepad.nn.encoder import FeedForwardEncoder, ConvEncoder
 
-def prepare_datasets(design_params, freq_response, config, device):
-    nx, nd = design_params.shape
-    ny, nf, nc = freq_response.shape
-
-    assert nx == ny, "design_params and s11_curves must have the same number of samples"
-    assert (
-        nf == config["model"]["n_freqs"]
-    ), "s11_curves must have the same number of frequency points as specified in the config"
-    assert (
-        nd == config["model"]["n_design_params"]
-    ), "design_params must have the same number of design parameters as specified in the config"
-    assert nc == 2, "s11_curves must have 2 channels (value and frequency)"
-
-    s11_curves = freq_response[:, :, 1]
-
-    np.random.seed(config["seed"])
-    train_inds = np.random.choice(
-        nx, int(nx * config["data"]["train_split"]), replace=False
-    )
-    test_inds = np.setdiff1d(np.arange(nx), train_inds)
-
-    train_dataset = RectangularPatchDataset(
-        design_params=design_params[train_inds],
-        s11_curves=s11_curves[train_inds],
-        curves_device=device,
-    )
-    test_dataset = RectangularPatchDataset(
-        design_params=design_params[test_inds],
-        s11_curves=s11_curves[test_inds],
-        design_params_scaler=train_dataset.design_params_scaler,
-        s11_curves_scaler=train_dataset.s11_curves_scaler,
-        curves_device=device,
-    )
-
-    return train_dataset, test_dataset
 
 def plot_reconstructed_curves(model, val_dataset, config, scaler, device):
     num_examples = config["plots"]["num_examples"]
@@ -75,14 +39,11 @@ def plot_reconstructed_curves(model, val_dataset, config, scaler, device):
         plt.legend()
         plt.grid(True)
 
-        # Save plot to a buffer
         plt.tight_layout()
         image_path = f"figs/reconstructed_example_{i+1}.png"
         plt.savefig(image_path)
         plt.close()
 
-        # Optionally, remove the saved image file
-        # os.remove(image_path)
 
 def main():
     config_path = "config/train/s11_vae.yaml"
@@ -91,7 +52,7 @@ def main():
 
     design_params = np.load(os.path.join(config["data"]["data_dir"], "design_params.npy"))
     freq_response = np.load(os.path.join(config["data"]["data_dir"], "freq_response.npy"))
-    _, val_dataset = prepare_datasets(design_params, freq_response, config, device)
+    _, val_dataset = prepare_datasets(design_params, freq_response, config, device, "cpu")
 
     # encoder = FeedForwardEncoder(
     #     input_dim=config["model"]["n_freqs"],
