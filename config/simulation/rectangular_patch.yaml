@@ -1,0 +1,16 @@
+substrate:
+  substrate_epsR: 3.68
+  substrate_thickness: 1.61
+  substrate_factor: 1.5
+
+airbox:
+  airbox_thickness: 150
+  airbox_factor: 3.5
+
+frequency:
+  pulse_f0: 5.5e9
+  pulse_fc: 4.5e9
+
+  freq_start: 1e9
+  freq_stop: 10e9
+  n_freqs: 1000
