@@ -8,6 +8,7 @@ import torch.nn as nn
 import logging
 from deepad.nn.datasets import RectangularPatchDataset
 from torch.utils.data import DataLoader
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def save_checkpoint(
     epoch: int,
     X_scaler: object,
     y_scaler: object,
-    config: dict
+    config: dict,
 ) -> None:
     """
     Save model checkpoint to disk.
@@ -86,7 +87,7 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
             "Checkpoint not found at %s. Starting from scratch.", checkpoint_path
         )
         return model, optimizer, None, None, 0
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -95,6 +96,48 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
     start_epoch = checkpoint["epoch"]
     logger.info("Resumed training from epoch %d", start_epoch)
     return model, optimizer, X_scaler, y_scaler, start_epoch
+
+
+def load_wandb_checkpoint(
+    run_path: str,
+    checkpoint_name: str,
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    download_dir: str = "wandb_downloads",
+):
+    """
+    Load a checkpoint from Weights & Biases.
+
+    Args:
+        run_path (str): Path to the W&B run (format: "entity/project/run_id")
+        checkpoint_name (str): Name of the checkpoint file
+        model (torch.nn.Module): The model to load the state dictionary into
+        optimizer (torch.optim.Optimizer): The optimizer to load the state dictionary into
+        device (torch.device): The device to load the model and optimizer onto
+        download_dir (str): Directory to download the checkpoint to
+
+    Returns:
+        Same as load_checkpoint(): (model, optimizer, X_scaler, y_scaler, start_epoch)
+    """
+    api = wandb.Api()
+    try:
+        os.makedirs(download_dir, exist_ok=True)
+
+        run = api.run(run_path)
+        checkpoint_path = Path(download_dir) / checkpoint_name
+
+        run.file(checkpoint_name).download(root=download_dir, replace=True)
+
+        result = load_checkpoint(checkpoint_path, model, optimizer, device)
+
+        checkpoint_path.unlink()
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to load W&B checkpoint: {e}")
+        return model, optimizer, None, None, 0
 
 
 def count_parameters(model: nn.Module) -> Dict[str, int]:
@@ -106,6 +149,7 @@ def count_parameters(model: nn.Module) -> Dict[str, int]:
         "trainable_params": trainable_params,
         "non_trainable_params": non_trainable_params,
     }
+
 
 def load_data(config):
     design_params = np.load(
@@ -190,7 +234,7 @@ def prepare_datasets(
 def create_dataloaders(
     train_dataset: RectangularPatchDataset,
     test_dataset: RectangularPatchDataset,
-    config: dict
+    config: dict,
 ) -> Tuple[DataLoader, DataLoader]:
     """
     Create DataLoader objects for training and testing.
@@ -210,3 +254,24 @@ def create_dataloaders(
         test_dataset, batch_size=config["hyperparameters"]["batch_size"]
     )
     return train_dataloader, test_dataloader
+
+
+def sigmoid_annealing(
+    epoch: int, n_warmup_epochs: int, min_weight: float, max_weight: float
+) -> float:
+    """Compute sigmoid-based annealing weight for loss scheduling.
+
+    Args:
+        epoch (int): Current training epoch
+        n_warmup_epochs (int): Number of epochs for warmup period
+        min_weight (float): Minimum weight value
+        max_weight (float): Maximum weight value
+
+    Returns:
+        float: Annealed weight value between min_weight and max_weight
+    """
+    if n_warmup_epochs == 0:  # No scheduling case
+        return max_weight
+    x = 10 * (epoch - 0.5 * n_warmup_epochs) / n_warmup_epochs
+    sigmoid = 1 / (1 + np.exp(-x))
+    return min_weight + (max_weight - min_weight) * sigmoid

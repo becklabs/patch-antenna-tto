@@ -1,26 +1,14 @@
-import torch
 import numpy as np
+import torch
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.utils.data import Dataset
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
-
-class AntennaDataset(Dataset):
-    def __init__(self, design_params, s11_curves):
-        # design_params: (num_samples, design_param_dim)
-        # s11_curves: (num_samples, s11_length)
-        self.design_params = torch.tensor(design_params, dtype=torch.float32)
-        self.s11_curves = torch.tensor(s11_curves, dtype=torch.float32)
-
-    def __len__(self):
-        return len(self.design_params)
-
-    def __getitem__(self, idx):
-        design_param = self.design_params[idx]
-        s11_curve = self.s11_curves[idx]
-        return design_param, s11_curve
 
 
 class RectangularPatchDataset(Dataset):
+    """
+    Dataset for Rectangular Patch design parameters (length, width, feed_pos) and S11 curves.
+    """
+
     def __init__(
         self,
         design_params: np.ndarray,

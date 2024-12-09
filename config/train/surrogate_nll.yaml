@@ -7,14 +7,15 @@ device: 'auto'  # 'auto' | 'cpu' | 'cuda' | 'mps'
 seed: 42  
 
 data:
-  # data_dir: "data/results/preprocessed_all/"  
-  data_dir: "data/results/sim_results2/preprocessed_all"  
+  data_dir: "data/results/preprocessed_all_filtered_feed"  
+  # data_dir: "data/results/preprocessed_all"  
+  # data_dir: "data/results/sim_results2/preprocessed_all_filtered"  
   design_params_file: "design_params.npy"
   freq_response_file: "freq_response.npy"
   train_split: 0.8
 
 hyperparameters:
-  num_epochs: 500       
+  num_epochs: 500     
   batch_size: 64         
   learning_rate: 0.005
 
@@ -28,9 +29,10 @@ model:
   n_freqs: 1000            # Number of sampled frequency points in the S11 curve
 
 checkpoint:
-  checkpoint_dir: "checkpoints/forward_model/v0/"
+  checkpoint_dir: "checkpoints/forward_model/v1_betanll/"
   resume_from_checkpoint: False
-  resume_checkpoint: "model_epoch_49.pth"
+  resume_checkpoint: "model_epoch_499.pth"
+  run_path: "becklabs-northeastern-university/s11_reconstruction/pnl68on8"
 
 plots:
   num_examples: 10  # Number of examples to plot for reconstructed designs

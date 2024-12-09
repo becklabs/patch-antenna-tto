@@ -8,10 +8,10 @@ import torch.nn as nn
 import wandb
 from deepad.nn.decoder import ConvDecoder, SimpleFeedForwardDecoder
 from deepad.nn.encoder import ConvEncoder, SimpleFeedForwardEncoder
-from deepad.nn.losses import AdversarialVAELoss, sigmoid_annealing
+from deepad.nn.losses import AdversarialVAELoss
 from deepad.nn.utils import (create_dataloaders, load_checkpoint, load_config,
                              load_data, prepare_datasets, save_checkpoint,
-                             set_device)
+                             set_device, sigmoid_annealing)
 from deepad.nn.vae import AdversarialVAE
 
 logging.basicConfig(
@@ -119,6 +119,10 @@ def train(
             'vae': {'sum': 0.0, 'count': 0},
         }
 
+        vae_updates = 0
+        discriminator_updates = 0
+        encoder_updates = 0
+
         kld_weight = sigmoid_annealing(
             epoch, n_warmup_epochs, min_kld_weight, max_kld_weight
         )
@@ -158,10 +162,14 @@ def train(
                 loss_trackers['vae']['sum'] += vae_loss.item()
                 loss_trackers['vae']['count'] += 1
 
+                vae_updates += 1
+
             # Discriminator Update
             elif (i // 5) % 2 == 0: # i = n + 10,11,12,13,14
                 y_hat_loss.backward()
                 optimizer_disc.step()
+
+                discriminator_updates += 1
 
             # Encoder Update
             else: # i = n + 15,16,17,18,19
@@ -171,6 +179,8 @@ def train(
 
                 loss_trackers['encoder']['sum'] += encoder_loss.item()
                 loss_trackers['encoder']['count'] += 1
+
+                encoder_updates += 1
 
 
         avg_train_recon_loss = tracker_avg(loss_trackers, 'recon')
@@ -201,11 +211,11 @@ def train(
                     "kld_weight": kld_weight,
                 }
             )
-
         logger.info(
             "Epoch %d: Train VAE Loss: %.4f (Recon: %.4f, KL: %.4f), "
             "Y-hat Loss: %.4f, Adversarial Loss: %.4f, Encoder Loss: %.4f | "
-            "Test VAE Loss: %.4f (Recon: %.4f, KL: %.4f), Y-hat Loss: %.4f, Adversarial Loss: %.4f",
+            "Test VAE Loss: %.4f (Recon: %.4f, KL: %.4f), Y-hat Loss: %.4f, Adversarial Loss: %.4f | "
+            "Update Spread: (%d/%d/%d)",
             epoch,
             avg_train_vae_loss,
             avg_train_recon_loss,
@@ -218,6 +228,9 @@ def train(
             test_metrics["kl_loss"],
             test_metrics["y_hat_loss"],
             test_metrics["adversarial_loss"],
+            int(100 * vae_updates / len(train_dataloader)),
+            int(100 * discriminator_updates / len(train_dataloader)),
+            int(100 * encoder_updates / len(train_dataloader)),
         )
 
         if (epoch + 1) % config["wandb"]["save_interval"] == 0:

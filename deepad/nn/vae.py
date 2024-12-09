@@ -2,7 +2,6 @@ from typing import Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class VAE(nn.Module):
@@ -183,7 +182,8 @@ class AdversarialVAE(nn.Module):
         condition_head: nn.Module = nn.Identity(),
     ):
         """
-        Conditional Variational Autoencoder that uses provided encoder and decoder networks.
+        Adversarial Variational Autoencoder that uses provided encoder, decoder, and discriminator networks.
+        https://archives.ismir.net/ismir2020/paper/000099.pdf
 
         Args:
             encoder: Neural network that outputs 2*latent_dim features (mu and logvar)
