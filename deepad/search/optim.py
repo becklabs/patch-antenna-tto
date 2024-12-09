@@ -24,9 +24,7 @@ def optimize_latent(
         telemetry: If True, return dictionary with optimization history.
     """
 
-    telemetry_data: Optional[dict] = (
-        {"latents": [], "losses": []} if telemetry else None
-    )
+    telemetry_data = {"latents": [], "losses": []} if telemetry else None
 
     z = nn.Parameter(z_init.to(device))
     optimizer = torch.optim.Adam([z], lr=lr)
@@ -37,8 +35,8 @@ def optimize_latent(
         loss.backward()
         optimizer.step()
 
-        if telemetry_data is not None:
+        if telemetry:
             telemetry_data["losses"].append(loss.item())
-            telemetry_data["latents"].append(z.detach())
+            telemetry_data["latents"].append(z.detach().clone())
 
     return z.detach(), telemetry_data

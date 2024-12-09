@@ -1,0 +1,15 @@
+hyperparameters:
+  n_steps: 300 # number of optimization steps
+  lr: 0.01 # learning rate
+  lambda_reg: 1.0 # regularization term weight
+  z_init_strategy: "fixed" # Latent initialization strategy: "fixed" | "random" | "closest"
+  n_curves: 5 # number of curves to optimize
+
+data:
+  data_dir: "data/results/sim_results2/preprocessed_all/"
+  design_params_file: "design_params.npy"
+  freq_response_file: "freq_response.npy"
+
+  freq_start: 1e9
+  freq_stop: 10e9
+  n_freqs: 1000
