@@ -2,10 +2,30 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from typing import Union
 
 from ..nn.datasets import RectangularPatchDataset
 from ..nn.losses import masked_loss
 from ..nn.vae import VAE
+
+
+def target_curve_mask(
+    target_curve: Union[np.ndarray, torch.Tensor], threshold: float = 0.1
+) -> torch.Tensor:
+    """
+    Create a mask for the target curve based on the dB threshold.
+    """
+    if isinstance(target_curve, np.ndarray):
+        mask_np = np.ones_like(target_curve)
+        mask_np[np.abs(target_curve) < threshold] = 0
+        return torch.from_numpy(mask_np.astype(np.float32))
+
+    elif isinstance(target_curve, torch.Tensor):
+        mask = torch.ones_like(target_curve)
+        mask[torch.abs(target_curve) < threshold] = 0
+        return mask
+    else:
+        raise ValueError(f"Unsupported type for target_curve: {type(target_curve)}")
 
 
 def sort_latents(
@@ -22,9 +42,7 @@ def sort_latents(
     device = next(vae.parameters()).device
 
     MASK_DB_THRESHOLD = 0.1  # dB
-    mask_np = np.ones_like(target_curve)
-    mask_np[np.abs(target_curve) < MASK_DB_THRESHOLD] = 0
-    mask = torch.from_numpy(mask_np.astype(np.float32)).to(device)
+    mask = target_curve_mask(target_curve=target_curve, threshold=MASK_DB_THRESHOLD)
 
     target_curve_scaled = dataset.s11_curves_scaler.transform(
         target_curve.reshape(1, -1)

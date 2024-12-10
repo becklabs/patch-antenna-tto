@@ -12,6 +12,33 @@ class StandardScaler(nn.Module):
         self.register_buffer("std", None)
         self.fitted = False
 
+    @classmethod
+    def from_sklearn(cls, sklearn_scaler):
+        """
+        Create a StandardScaler from a fitted sklearn.preprocessing.StandardScaler.
+
+        Parameters
+        ----------
+        sklearn_scaler : sklearn.preprocessing.StandardScaler
+            A fitted sklearn StandardScaler.
+        """
+        if not hasattr(sklearn_scaler, "mean_") or not hasattr(
+            sklearn_scaler, "scale_"
+        ):
+            raise ValueError(
+                "The provided sklearn scaler is not a fitted StandardScaler."
+            )
+
+        obj = cls()
+
+        mean_t = torch.tensor(sklearn_scaler.mean_, dtype=torch.float32).unsqueeze(0)
+        std_t = torch.tensor(sklearn_scaler.scale_, dtype=torch.float32).unsqueeze(0)
+
+        obj.register_buffer("mean", mean_t)
+        obj.register_buffer("std", std_t)
+        obj.fitted = True
+        return obj
+
     def fit(self, x):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x.astype(np.float32))
@@ -65,6 +92,35 @@ class MinMaxScaler(nn.Module):
         self.register_buffer("x_min", None)
         self.register_buffer("x_max", None)
         self.fitted = False
+
+    @classmethod
+    def from_sklearn(cls, sklearn_scaler):
+        """
+        Create a MinMaxScaler from a fitted sklearn.preprocessing.MinMaxScaler.
+
+        NOTE: Only works for MinMaxScaler with feature_range=(0, 1)
+
+        Parameters
+        ----------
+        sklearn_scaler : sklearn.preprocessing.MinMaxScaler
+            A fitted sklearn MinMaxScaler.
+        """
+        if not hasattr(sklearn_scaler, "data_min_") or not hasattr(
+            sklearn_scaler, "data_max_"
+        ):
+            raise ValueError(
+                "The provided sklearn scaler is not a fitted MinMaxScaler."
+            )
+
+        obj = cls()
+
+        min_t = torch.tensor(sklearn_scaler.data_min_, dtype=torch.float32).unsqueeze(0)
+        max_t = torch.tensor(sklearn_scaler.data_max_, dtype=torch.float32).unsqueeze(0)
+
+        obj.register_buffer("x_min", min_t)
+        obj.register_buffer("x_max", max_t)
+        obj.fitted = True
+        return obj
 
     def fit(self, x):
         if isinstance(x, np.ndarray):

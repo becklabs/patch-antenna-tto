@@ -4,7 +4,9 @@ import torch.nn as nn
 
 from ..nn.losses import masked_loss
 from ..nn.vae import VAE
-from sklearn.preprocessing import StandardScaler
+from ..nn.preprocessing import StandardScaler, MinMaxScaler
+from ..simulation.harness import SimulationHarness
+from .utils import target_curve_mask
 
 class S11SearchCriterion(nn.Module):
     """
@@ -17,7 +19,7 @@ class S11SearchCriterion(nn.Module):
         self,
         vae: VAE,
         target_curve: torch.Tensor,
-        curve_scaler: StandardScaler,
+        curve_scaler: object,
         lambda_reg: float = 1.0,
         device: str = "cpu",
     ):
@@ -27,8 +29,7 @@ class S11SearchCriterion(nn.Module):
         self.vae = vae
         self.curve_scaler = curve_scaler
 
-        self.mask = torch.ones_like(target_curve)
-        self.mask[torch.abs(target_curve) < self.MASK_DB_THRESHOLD] = 0
+        self.mask = target_curve_mask(target_curve=target_curve, threshold=self.MASK_DB_THRESHOLD)
 
         target_curve_scaled = self.curve_scaler.transform(target_curve.cpu().numpy().reshape(1, -1))
         self.target_curve = torch.FloatTensor(target_curve_scaled.astype(np.float32)).squeeze().to(device)
@@ -45,3 +46,126 @@ class S11SearchCriterion(nn.Module):
         )
         reg_loss = torch.sum(z**2)
         return loss + self.lambda_reg * reg_loss
+
+
+
+class DesignSearchCriteria(nn.Module):
+    def __init__(self, design_scaler: object):
+        """
+        Manufacturability criterion for the rectangular patch design space.
+        """
+        super(DesignSearchCriteria, self).__init__()
+
+        if not isinstance(design_scaler, nn.Module):
+            self.design_scaler = MinMaxScaler.from_sklearn(design_scaler)
+        else:
+            self.design_scaler = design_scaler
+
+    def forward(self, x_scaled):
+        """
+        Compute the penalty for the batch of normalized designs.
+        """
+        x = self.design_scaler.inverse_transform(x_scaled)
+
+        length = x[:, 0]
+        width = x[:, 1]
+        feed_pos = x[:, 2]
+
+        # Condition 1: length < 0
+        length_penalty = torch.relu(-length)**2
+
+        # Condition 2: width < 0
+        width_penalty = torch.relu(-width)**2
+
+        # Condition 3: feed_position outside (-length/2, 0)
+        lower_bound = -length / 2.0
+        lower_penalty = torch.relu(lower_bound - feed_pos)**2
+        upper_penalty = torch.relu(feed_pos)**2
+        feed_penalty = lower_penalty + upper_penalty
+
+        total_penalty = length_penalty + width_penalty + feed_penalty
+        return total_penalty
+
+
+class OracleDesignScorer:
+    """
+    Scores the design according to a target curve using an EM solver.
+    """
+
+    def __init__(self, target_curve: np.ndarray, sim_harness: SimulationHarness):
+        super(OracleDesignScorer, self).__init__()
+
+        self.target_curve = torch.from_numpy(target_curve)
+        self.harness = sim_harness
+
+        self.mask = target_curve_mask(target_curve=target_curve)
+
+    def __call__(self, x: np.ndarray):
+        """
+        Score a single design with the surrogate. 
+        """
+        if len(x.shape) == 1: # Add a batch dimension if not already present
+            x = x[np.newaxis, ...]
+
+        s11 = torch.from_numpy(self.harness.simulate(x))
+
+        loss = masked_loss(
+            pred=s11,
+            target=self.target_curve,
+            mask=self.mask,
+        )
+        return loss
+
+
+class SurogateDesignScorer:
+    """
+    Scores the design according to a target curve using a differentiable surrogate model.
+
+    TODO:
+    - Implement version of this that handles normalized designs.
+    """
+
+    def __init__(self, 
+                 target_curve: np.ndarray,
+                 surrogate: nn.Module, 
+                 design_scaler: object, 
+                 curve_scaler: object,
+                 device: str = "cpu"):
+        super(SurogateDesignScorer, self).__init__()
+
+        self.mask = target_curve_mask(target_curve=target_curve)
+
+        target_curve_scaled = curve_scaler.transform(target_curve.reshape(1, -1))
+        self.target_curve = torch.from_numpy(target_curve_scaled.astype(np.float32)).squeeze().to(device)
+
+        self.curve_scaler = curve_scaler
+        self.design_scaler = design_scaler
+
+        self.surrogate = surrogate
+
+        self.device = device
+    
+    def __call__(self, x: np.ndarray):
+        """
+        Score a single design with the surrogate.
+        """
+        if len(x.shape) == 1: # Add a batch dimension if not already present
+            x = x[np.newaxis, ...]
+
+        x_scaled = torch.from_numpy(self.design_scaler.transform(x).astype(np.float32)).to(self.device)
+
+        mean, variance = self.surrogate(x_scaled)
+        mean = mean.squeeze()
+        variance = variance.squeeze()
+
+        eps = 1e-10
+        weights = 1 / (variance + eps)
+        # weights = weights / torch.sum(weights * self.mask)
+
+        target_masked = self.target_curve * self.mask
+        mean_masked = mean * self.mask
+
+        score = torch.sum(weights * (mean_masked - target_masked)**2)
+        return score
+
+
