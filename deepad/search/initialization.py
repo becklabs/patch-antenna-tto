@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
 import torch
 
 from ..nn.datasets import RectangularPatchDataset
@@ -58,7 +59,7 @@ class ClosestCurveInitialization(InitializationStrategy):
     def __init__(
         self,
         vae: VAE,
-        target_curve: torch.Tensor,
+        target_curve: np.ndarray,
         dataset: RectangularPatchDataset,
         batch_size: int = 32,
     ):

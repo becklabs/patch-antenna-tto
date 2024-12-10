@@ -1,9 +1,10 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
 from ..nn.losses import masked_loss
 from ..nn.vae import VAE
-
+from sklearn.preprocessing import StandardScaler
 
 class S11SearchCriterion(nn.Module):
     """
@@ -16,16 +17,21 @@ class S11SearchCriterion(nn.Module):
         self,
         vae: VAE,
         target_curve: torch.Tensor,
+        curve_scaler: StandardScaler,
         lambda_reg: float = 1.0,
+        device: str = "cpu",
     ):
         super(S11SearchCriterion, self).__init__()
 
         self.lambda_reg = lambda_reg
         self.vae = vae
-        self.target_curve = target_curve
+        self.curve_scaler = curve_scaler
 
-        self.mask = torch.ones_like(self.target_curve)
-        self.mask[torch.abs(self.target_curve) < self.MASK_DB_THRESHOLD] = 0
+        self.mask = torch.ones_like(target_curve)
+        self.mask[torch.abs(target_curve) < self.MASK_DB_THRESHOLD] = 0
+
+        target_curve_scaled = self.curve_scaler.transform(target_curve.cpu().numpy().reshape(1, -1))
+        self.target_curve = torch.FloatTensor(target_curve_scaled.astype(np.float32)).squeeze().to(device)
 
         self.recon_criterion = nn.MSELoss(reduction="sum")  # Masked loss averages over mask
 

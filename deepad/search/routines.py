@@ -12,7 +12,8 @@ from .criterion import S11SearchCriterion
 
 def find_curve(
     vae: VAE,
-    ideal_curve: torch.Tensor,
+    ideal_curve: np.ndarray,
+    curve_scaler: object,
     latent_dim: int,
     device: str,
     z_init_strategy: InitializationStrategy = RandomInitialization(),
@@ -42,12 +43,14 @@ def find_curve(
     Returns:
         A list of dictionaries, each containing the reconstructed curve, the optimized latent vector, and the telemetry dictionary.
     """
-    ideal_curve = ideal_curve.to(device)
+    ideal_curve = torch.FloatTensor(ideal_curve).to(device)
 
     criterion = S11SearchCriterion(
         vae=vae,
         target_curve=ideal_curve,
+        curve_scaler=curve_scaler,
         lambda_reg=lambda_reg,
+        device=device,
     )
 
     z_init = z_init_strategy(latent_dim, n_curves)
@@ -80,7 +83,11 @@ def find_curve(
 
         results.append(
             {
-                "curve": y_hat.detach(),
+                "curve": 
+                    curve_scaler.inverse_transform(
+                    y_hat.detach().cpu().numpy().reshape(1, -1)
+                ).flatten()
+                .astype(np.float32),
                 "latent": z.detach(),
                 "telemetry": telemetry_dict,
             }

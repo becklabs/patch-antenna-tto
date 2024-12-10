@@ -7,10 +7,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from deepad.nn.datasets import RectangularPatchDataset
 from deepad.nn.decoder import ConvDecoder
 from deepad.nn.encoder import ConvEncoder
-from deepad.nn.utils import (load_checkpoint, load_config, load_data,
-                             prepare_datasets, set_device)
+from deepad.nn.utils import load_checkpoint, load_config, load_data, set_device
 from deepad.nn.vae import VAE
 from deepad.search.initialization import (ClosestCurveInitialization,
                                           FixedRandomInitialization,
@@ -61,12 +61,10 @@ def create_animation(freqs, target_curve, all_telemetry, n_curves):
     for i in range(n_curves):
         (line,) = ax.plot([], [], alpha=0.5, label=f"Optimized Curve {i+1}")
         lines.append(line)
-    (target_line,) = ax.plot(
-        freqs, target_curve.cpu().numpy().flatten(), "r-", label="Target Curve"
-    )
+    (target_line,) = ax.plot(freqs, target_curve.flatten(), "r-", label="Target Curve")
 
     ax.set_xlim(freqs.min(), freqs.max())
-    ax.set_ylim(target_curve.cpu().numpy().flatten().min() - 5, 5)
+    ax.set_ylim(target_curve.flatten().min() - 5, 5)
     ax.set_xlabel("Frequency (Hz)")
     ax.set_ylabel("S11 (dB)")
     ax.set_title("Optimization Progress")
@@ -81,7 +79,7 @@ def create_animation(freqs, target_curve, all_telemetry, n_curves):
     anim = animation.FuncAnimation(
         fig, animate, frames=len(all_telemetry[0]["curves"]), interval=20, blit=True
     )
-    anim.save("figs/optimization_progress_3.gif", writer="pillow")
+    anim.save("figs/optimization_progress_4.gif", writer="pillow")
     plt.close()
 
 
@@ -91,15 +89,14 @@ def plot_curves_and_losses(target_curve, reconstructed_curves, criterion):
 
     # Plot 1: Original vs Reconstructed curves
     plt.subplot(1, 2, 1)
-    plt.plot(target_curve.cpu().numpy().flatten(), label="Target Curve", linewidth=2)
+    plt.plot(target_curve.flatten(), label="Target Curve", linewidth=2)
     for i, curve in enumerate(reconstructed_curves):
-        plt.plot(
-            curve.cpu().numpy().flatten(), "--", label=f"Found Curve {i+1}", alpha=0.5
-        )
+        plt.plot(curve.flatten(), "--", label=f"Found Curve {i+1}", alpha=0.5)
 
     # Plot 2: Final loss
     final_losses = [
-        criterion(curve, target_curve).item() for curve in reconstructed_curves
+        criterion(torch.FloatTensor(curve), torch.FloatTensor(target_curve)).item()
+        for curve in reconstructed_curves
     ]
     loss_text = "\n".join(
         [f"Curve {i+1} Loss: {loss:.6f}" for i, loss in enumerate(final_losses)]
@@ -147,38 +144,41 @@ if __name__ == "__main__":
         config["checkpoint"]["checkpoint_dir"],
         config["checkpoint"]["resume_checkpoint"],
     )
-    vae, _, _, _, _ = load_checkpoint(checkpoint_path, vae, None, device)
+    vae, _, _, y_scaler, _ = load_checkpoint(checkpoint_path, vae, None, device)
     vae.eval()
 
-    _, val_dataset = prepare_datasets(
-        design_params, freq_response, config, device, device
+    dataset = RectangularPatchDataset(
+        design_params=design_params,
+        s11_curves=freq_response[:, :, 1],
+        s11_curves_scaler=y_scaler,
+        curves_device=device,
+        design_device=device,
     )
 
-    target_curve = torch.FloatTensor(
-        generate_s11_curve(
-            freq_range=freqs,
-            resonant_freqs=[2.4e9],
-            bandwidths=[100e6],
-            depths_db=[-15],
-        )
-    ).to(device)
+    target_curve = generate_s11_curve(
+        freq_range=freqs,
+        resonant_freqs=[2.4e9],
+        bandwidths=[100e6],
+        depths_db=[-15],
+    )
 
     random_init = RandomInitialization()
     fixed_init = FixedRandomInitialization()
     closest_init = ClosestCurveInitialization(
         vae=vae,
         target_curve=target_curve,
-        dataset=val_dataset,
+        dataset=dataset,
     )
     k_closest_init = KClosestCurveInitialization(
         vae=vae,
         target_curve=target_curve,
-        dataset=val_dataset,
+        dataset=dataset,
     )
 
     results = find_curve(
         vae=vae,
         ideal_curve=target_curve,
+        curve_scaler=y_scaler,
         latent_dim=config["model"]["latent_dim"],
         device=device,
         z_init_strategy=k_closest_init,
