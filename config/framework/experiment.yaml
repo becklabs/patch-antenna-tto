@@ -1,0 +1,29 @@
+paths:
+  simulation_config: "config/simulation/rectangular_patch.yaml"
+  design_cvae_config: "config/train/design_cvae.yaml"
+  s11_vae_config: "config/train/s11_vae.yaml"
+  s11_search_config: "config/search/search_s11.yaml"
+  surrogate_config: "config/train/surrogate_nll.yaml"
+
+experiment:
+  init_strategy: "random"  # Options: random, fixed_random, closest, k_closest
+  n_curves: 10               # Number of curves to generate
+  n_steps: 100               # Number of optimization steps for curve generation
+  lr: 0.01                  # Learning rate for curve optimization
+  n_designs: 5               # Number of designs to generate per generated curve
+  scorer_type: "surrogate"        # Options: surrogate, oracle, both
+  optimize_design: false     # If true, optimize designs instead of direct decode
+
+target_curve:
+  # resonant_freqs: [2.4e9]  # List of resonant frequencies
+  # bandwidths: [100e6]      # List of bandwidths for each resonance
+  # depths_db: [-15]           # List of depths (in dB) for each resonance
+
+  resonant_freqs: [8e9]  # List of resonant frequencies
+  bandwidths: [100e6]      # List of bandwidths for each resonance
+  depths_db: [-15]           # List of depths (in dB) for each resonance
+
+
+# Logging and output
+logging:
+  log_level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR

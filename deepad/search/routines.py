@@ -7,10 +7,12 @@ from ..nn.vae import VAE
 from .optim import optimize_latent
 
 from .initialization import InitializationStrategy, RandomInitialization
-from .criterion import S11SearchCriterion
+from .criterion import S11SearchCriterion, DesignSearchCriteria
+
+from ..nn.vae import AdversarialVAE
 
 
-def find_curve(
+def find_curves(
     vae: VAE,
     ideal_curve: np.ndarray,
     curve_scaler: object,
@@ -24,10 +26,7 @@ def find_curve(
     telemetry: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor, Optional[dict]]:
     """
-    Find the in-distribution curve closest to the ideal curve.
-
-    Gradient-based optimization is used to find the latent vector that
-    corresponds to the ideal curve.
+    Find n_curves in-distributions curves characterized by the ideal curve.
 
     Args:
         vae: VAE model.
@@ -43,11 +42,10 @@ def find_curve(
     Returns:
         A list of dictionaries, each containing the reconstructed curve, the optimized latent vector, and the telemetry dictionary.
     """
-    ideal_curve = torch.FloatTensor(ideal_curve).to(device)
 
     criterion = S11SearchCriterion(
         vae=vae,
-        target_curve=ideal_curve,
+        target_curve=torch.FloatTensor(ideal_curve).to(device),
         curve_scaler=curve_scaler,
         lambda_reg=lambda_reg,
         device=device,
@@ -94,3 +92,56 @@ def find_curve(
         )
 
     return results
+
+
+def generate_design(
+    cvae: AdversarialVAE,
+    latent_dim: int,
+
+    candidate_curve: np.ndarray,
+
+    s11_scaler: object,
+    design_scaler: object,
+
+    device: str,
+
+    optimize: bool = True,
+    n_steps: int = 20,
+    lr: float = 0.01,
+    lambda_reg: float = 1.0,
+
+    telemetry: bool = False,
+):
+    """
+    Generate a design from a candidate curve.
+    """
+    
+    c = torch.FloatTensor(s11_scaler.transform(candidate_curve.reshape(1, -1)).astype(np.float32)).to(device)
+
+    z_init_strategy = RandomInitialization()
+    z_init = z_init_strategy(latent_dim, 1)
+
+    if optimize:
+        criterion = DesignSearchCriteria(cvae=cvae, condition=c, design_scaler=design_scaler, lambda_reg=lambda_reg)
+        z_star, telemetry_dict = optimize_latent(
+            z_init=z_init,
+            criterion=criterion,
+            device=device,
+            n_steps=n_steps,
+            lr=lr,
+            telemetry=telemetry,
+        )
+
+    else:
+        telemetry_dict = None
+        z_star = z_init
+
+    with torch.no_grad():
+        design = cvae.decode(z_star.to(device), c)
+
+    return design_scaler.inverse_transform(design.cpu().numpy()), z_star, telemetry_dict
+
+
+
+
+

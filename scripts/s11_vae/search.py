@@ -16,7 +16,7 @@ from deepad.search.initialization import (ClosestCurveInitialization,
                                           FixedRandomInitialization,
                                           KClosestCurveInitialization,
                                           RandomInitialization)
-from deepad.search.routines import find_curve
+from deepad.search.routines import find_curves
 from deepad.signal import generate_s11_curve
 
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         dataset=dataset,
     )
 
-    results = find_curve(
+    results = find_curves(
         vae=vae,
         ideal_curve=target_curve,
         curve_scaler=y_scaler,

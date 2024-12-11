@@ -14,9 +14,14 @@ class SimulationHarness(ABC):
     Base class for simulation harnesses
     """
 
-    def __init__(self, config_path: str):
+    def __init__(self, config: dict):
+        self.config = config
+
+    @classmethod
+    def from_yaml(cls, config_path: str):
         with open(config_path, "r") as f:
-            self.config = yaml.safe_load(f)
+            config = yaml.safe_load(f)
+        return cls(config)
 
     @abstractmethod
     def simulate(self, designs: np.ndarray) -> np.ndarray:
@@ -43,8 +48,8 @@ class RectangularPatchHarness(SimulationHarness):
 
     """
 
-    def __init__(self, config_path: str):
-        super().__init__(config_path)
+    def __init__(self, config: dict):
+        super().__init__(config)
 
         self.substrate_factor = float(self.config["substrate"]["substrate_factor"])
         self.substrate_epsR = float(self.config["substrate"]["substrate_epsR"])

@@ -42,7 +42,7 @@ def sort_latents(
     device = next(vae.parameters()).device
 
     MASK_DB_THRESHOLD = 0.1  # dB
-    mask = target_curve_mask(target_curve=target_curve, threshold=MASK_DB_THRESHOLD)
+    mask = target_curve_mask(target_curve=target_curve, threshold=MASK_DB_THRESHOLD).to(device)
 
     target_curve_scaled = dataset.s11_curves_scaler.transform(
         target_curve.reshape(1, -1)

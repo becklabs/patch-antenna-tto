@@ -7,7 +7,7 @@ import torch.nn as nn
 import argparse
 
 from deepad.nn.vae import VAE
-from deepad.nn.losses import VAELoss, s11_reconstruction_loss, sigmoid_annealing
+from deepad.nn.losses import VAELoss, s11_reconstruction_loss
 
 from deepad.nn.decoder import FeedForwardDecoder, ConvDecoder
 from deepad.nn.encoder import FeedForwardEncoder, TCNEncoder, ConvEncoder
@@ -20,6 +20,7 @@ from deepad.nn.utils import (
     prepare_datasets,
     load_data,
     create_dataloaders,
+    sigmoid_annealing
 )
 
 logging.basicConfig(
