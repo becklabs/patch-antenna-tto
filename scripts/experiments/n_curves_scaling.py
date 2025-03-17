@@ -12,6 +12,11 @@ target_curves = [
     {"resonant_freqs": [8.0e9], "bandwidths": [100e6], "depths_db": [-15]},
 ]
 init_strategies = ["random", "k_closest"]
+init_strategy_labels = {
+    "random": "Random",
+    "k_closest": r"$k$-closest"
+}
+
 n_curves_list = [1, 3, 5, 10, 20]
 
 simulation_config_path = "config/simulation/rectangular_patch.yaml"
@@ -22,7 +27,7 @@ surrogate_config_path = "config/train/surrogate_nll.yaml"
 
 optimize_design = False
 n_designs = 1
-scorer_type = "surrogate"  # We'll assume we use the surrogate scoring
+scorer_type = "surrogate"  
 
 results_file = "data/experiments/n_curves_scaling_noweight/experiment_results.json"
 
@@ -54,8 +59,8 @@ else:
                     surrogate_config_path=surrogate_config_path,
                     init_strategy_name=init_strategy,
                     n_curves=n_curves,
-                    n_steps=None,   # use config default
-                    lr=None,        # use config default
+                    n_steps=None,   
+                    lr=None,        
                     optimize_design=optimize_design,
                     n_designs=n_designs,
                     scorer_type=scorer_type,
@@ -72,7 +77,6 @@ else:
 
                 all_results[tc_key]["data"][init_strategy][str(n_curves)] = lowest_score
 
-    # Save results to file
     with open(results_file, "w") as f:
         json.dump(all_results, f, indent=4)
 
@@ -88,7 +92,7 @@ for tc_key in all_results.keys():
             score = tc_data["data"][init_strategy][str(n_curves)]
             strategy_scores[init_strategy][n_curves].append(score)
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(8, 4.8))
 
 plt.rcParams.update({
     'font.family': 'serif',
@@ -117,7 +121,7 @@ for idx, init_strategy in enumerate(init_strategies):
             color=colors[idx],
             marker=markers[idx],
             markersize=8,
-            label=init_strategy.replace('_', ' ').title(),
+            label=init_strategy_labels[init_strategy],
             clip_on=False)
     plt.fill_between(n_curves_list, 
                     means - stds, 
@@ -125,29 +129,23 @@ for idx, init_strategy in enumerate(init_strategies):
                     color=colors[idx],
                     alpha=0.15)
 
-plt.title("Performance vs Number of Curves")
 plt.xlabel("Number of Curves")
 plt.ylabel("Average Lowest Surrogate Score")
 
 # Customize grid - lighter and in background
 plt.grid(True, linestyle=':', alpha=0.3, zorder=0)
 
-# Move legend outside to the right
-plt.legend(bbox_to_anchor=(1.02, 1), 
-          loc='upper left',
+plt.legend(loc='upper right',
           frameon=True,
           edgecolor='none')
 
-# Tight layout with extra space for legend
-plt.tight_layout(rect=[0, 0, 0.85, 1])
+plt.tight_layout(rect=[0, 0, 0.7, 1])
 
-# Save the plot with high DPI
-plot_filename = "figs/plot_averaged_results.pdf"  # Save as PDF for vector graphics
+plot_filename = "figs/experiments/n_curves_scaling.pdf"  
 os.makedirs(os.path.dirname(plot_filename), exist_ok=True)
 plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
 print(f"Plot saved to {plot_filename}")
 
-# Also save as PNG for quick viewing
 plt.savefig(plot_filename.replace('.pdf', '.png'), dpi=300, bbox_inches='tight')
 
 plt.show()

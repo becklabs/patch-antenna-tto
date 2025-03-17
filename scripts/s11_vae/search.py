@@ -7,17 +7,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from deepad.nn.datasets import RectangularPatchDataset
-from deepad.nn.decoder import ConvDecoder
-from deepad.nn.encoder import ConvEncoder
-from deepad.nn.utils import load_checkpoint, load_config, load_data, set_device
-from deepad.nn.vae import VAE
-from deepad.search.initialization import (ClosestCurveInitialization,
+from patchtto.nn.datasets import RectangularPatchDataset
+from patchtto.nn.decoder import ConvDecoder
+from patchtto.nn.encoder import ConvEncoder
+from patchtto.nn.utils import load_checkpoint, load_config, load_data, set_device
+from patchtto.nn.vae import VAE
+from patchtto.search.initialization import (ClosestCurveInitialization,
                                           FixedRandomInitialization,
                                           KClosestCurveInitialization,
                                           RandomInitialization)
-from deepad.search.routines import find_curves
-from deepad.signal import generate_s11_curve
+from patchtto.search.routines import find_curves
+from patchtto.signal import generate_s11_curve
 
 
 def parse_arguments():

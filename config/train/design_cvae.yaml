@@ -13,10 +13,10 @@ data:
   train_split: 0.8
 
 hyperparameters:
-  num_epochs: 250       
-  batch_size: 32        
+  num_epochs: 300       
+  batch_size: 32 # 32
   learning_rate: 0.001   
-  kld_warmup_epochs: 100
+  kld_warmup_epochs: 50  # 100
 
   recon_criterion: "mse"
   kld_weight: 0.016
@@ -32,9 +32,9 @@ model:
   latent_dim: 16              # Dimension of the latent space
 
 checkpoint:
-  checkpoint_dir: "checkpoints/design_cvae/conv_v1/"
+  checkpoint_dir: "checkpoints/design_cvae/conv_v2/"
   resume_from_checkpoint: False
-  resume_checkpoint: "model_epoch_249.pth"
+  resume_checkpoint: "model_epoch_299.pth"
 
 plots:
   num_examples: 10  # Number of examples to plot for reconstructed designs

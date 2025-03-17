@@ -6,13 +6,13 @@ import torch
 import torch.nn as nn
 
 import wandb
-from deepad.nn.decoder import ConvDecoder, SimpleFeedForwardDecoder
-from deepad.nn.encoder import ConvEncoder, SimpleFeedForwardEncoder
-from deepad.nn.losses import AdversarialVAELoss
-from deepad.nn.utils import (create_dataloaders, load_checkpoint, load_config,
+from patchtto.nn.decoder import ConvDecoder, SimpleFeedForwardDecoder
+from patchtto.nn.encoder import ConvEncoder, SimpleFeedForwardEncoder
+from patchtto.nn.losses import AdversarialVAELoss
+from patchtto.nn.utils import (create_dataloaders, load_checkpoint, load_config,
                              load_data, prepare_datasets, save_checkpoint,
                              set_device, sigmoid_annealing)
-from deepad.nn.vae import AdversarialVAE
+from patchtto.nn.vae import AdversarialVAE
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

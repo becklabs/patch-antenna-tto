@@ -7,19 +7,23 @@ seed: 42  # Random seed for reproducibility
 
 hyperparameters:
   num_epochs: 500        # Number of training epochs
-  batch_size: 32         # Batch size for training
-  learning_rate: 0.001   # Learning rate for the optimizer
+  batch_size:  64        # Batch size for training
+  learning_rate: 0.005   # Learning rate for the optimizer
   design_param_dim: 3    # Dimension of design parameters [length, width, feed_position]
   num_wavelets: 500
   s11_length: 1000       # Number of frequency points in S11 curve
 
 loss_parameters:
+  quantify_uncertainty: True
   lambda1: 1.0          # Weight for the first derivative loss
   lambda2: 1.0          # Weight for the second derivative loss
   lambda_smooth: 1.0    # Weight for the smoothness term
 
 data:
-  data_dir: "data/results/sim_results2/preprocessed_all/"  # Directory containing data files
+  # data_dir: "data/results/sim_results2/preprocessed_all/"  # Directory containing data files
+  # data_dirs: ["data/results/sim_results2/preprocessed_all/", "data/results/sim_results3/preprocessed/"]   # Directory containing data files
+  data_dirs: ["data/results/sim_results3/preprocessed/"]   # Directory containing data files
+  # data_dirs: ["data/results/sim_results2/preprocessed_all/"]   # Directory containing data files
   design_params_file: "design_params.npy"                   # File containing design parameters
   freq_response_file: "freq_response.npy"                   # File containing frequency responses
   scaler_dir: 'scalers'                                     # Directory to save scaler files
@@ -30,7 +34,6 @@ data:
 model:
   latent_dim: 3                   # Dimensionality of the latent space
   output_length: 1000            # Length of the output S11 curve
-  output_channels: 1             # Number of output channels
   model_save_path: "models/s11_decoder.pth"  # Path to save the trained model
 
 plots:

@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from deepad.nn.utils import (
+from patchtto.nn.utils import (
     load_checkpoint,
     load_config,
     load_data,
@@ -14,12 +14,12 @@ from deepad.nn.utils import (
     create_dataloaders,
     set_device,
 )
-from deepad.nn.vae import AdversarialVAE
+from patchtto.nn.vae import AdversarialVAE
 
-from deepad.nn.encoder import SimpleFeedForwardEncoder
-from deepad.nn.decoder import SimpleFeedForwardDecoder
-from deepad.nn.encoder import ConvEncoder
-from deepad.nn.decoder import ConvDecoder
+from patchtto.nn.encoder import SimpleFeedForwardEncoder
+from patchtto.nn.decoder import SimpleFeedForwardDecoder
+from patchtto.nn.encoder import ConvEncoder
+from patchtto.nn.decoder import ConvDecoder
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

@@ -6,13 +6,13 @@ import wandb
 import torch.nn as nn
 import argparse
 
-from deepad.nn.vae import VAE
-from deepad.nn.losses import VAELoss, s11_reconstruction_loss
+from patchtto.nn.vae import VAE
+from patchtto.nn.losses import VAELoss, s11_reconstruction_loss
 
-from deepad.nn.decoder import FeedForwardDecoder, ConvDecoder
-from deepad.nn.encoder import FeedForwardEncoder, TCNEncoder, ConvEncoder
+from patchtto.nn.decoder import FeedForwardDecoder, ConvDecoder
+from patchtto.nn.encoder import FeedForwardEncoder, TCNEncoder, ConvEncoder
 
-from deepad.nn.utils import (
+from patchtto.nn.utils import (
     load_config,
     set_device,
     load_checkpoint,

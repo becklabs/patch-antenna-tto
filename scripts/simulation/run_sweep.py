@@ -8,8 +8,8 @@ from scipy.spatial import ConvexHull, Delaunay, KDTree
 from mpl_toolkits.mplot3d import Axes3D
 import random
 
-from deepad.simulation.manager import SweepManager
-from deepad.simulation.utils import load_results
+from patchtto.simulation.manager import SweepManager
+from patchtto.simulation.utils import load_results
 
 
 def sample_points_within_hull(hull, num_samples):

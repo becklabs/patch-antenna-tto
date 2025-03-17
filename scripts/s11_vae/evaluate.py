@@ -2,10 +2,10 @@ import os
 import torch    
 import numpy as np
 import matplotlib.pyplot as plt
-from deepad.nn.utils import load_config, set_device, load_checkpoint, prepare_datasets
-from deepad.nn.vae import VAE
-from deepad.nn.decoder import FeedForwardDecoder, ConvDecoder
-from deepad.nn.encoder import FeedForwardEncoder, ConvEncoder
+from patchtto.nn.utils import load_config, set_device, load_checkpoint, prepare_datasets
+from patchtto.nn.vae import VAE
+from patchtto.nn.decoder import FeedForwardDecoder, ConvDecoder
+from patchtto.nn.encoder import FeedForwardEncoder, ConvEncoder
 
 
 def plot_reconstructed_curves(model, val_dataset, config, scaler, device):

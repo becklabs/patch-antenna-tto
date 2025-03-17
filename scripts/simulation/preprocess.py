@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import argparse
-from deepad.simulation.utils import load_results
+from patchtto.simulation.utils import load_results
 
 RESONANCE_THRESHOLD = -20
 FEED_THRESHOLD = 0.01

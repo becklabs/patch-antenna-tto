@@ -5,17 +5,17 @@ import torch
 import torch.nn as nn
 
 import wandb
-from deepad.nn.decoder import ConvDecoder, FeedForwardDecoder
-from deepad.nn.losses import (
+from patchtto.nn.decoder import ConvDecoder, FeedForwardDecoder
+from patchtto.nn.losses import (
     s11_reconstruction_loss,
     beta_nll_loss,
     NLLHead,
 )
 
-from deepad.nn.preprocessing import MinMaxScaler, StandardScaler
+from patchtto.nn.preprocessing import MinMaxScaler, StandardScaler
 # from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from deepad.nn.utils import (
+from patchtto.nn.utils import (
     create_dataloaders,
     load_checkpoint,
     load_config,

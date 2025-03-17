@@ -6,9 +6,9 @@ import torch
 from pathlib import Path
 
 from scripts.framework.run import run_experiment
-from deepad.simulation.harness import RectangularPatchHarness
+from patchtto.simulation.harness import RectangularPatchHarness
 
-from deepad.signal import generate_s11_curve
+from patchtto.signal import generate_s11_curve
 
 target_curves = [
     {"resonant_freqs": [2.4e9], "bandwidths": [100e6], "depths_db": [-15]},
@@ -31,6 +31,7 @@ scorer_type = "surrogate"
 
 results_file = "data/experiments/simulation_overlay_results.json"
 os.makedirs(Path(results_file).parent, exist_ok=True)
+
 
 if os.path.exists(results_file):
     with open(results_file, "r") as f:
@@ -129,6 +130,7 @@ else:
 harness = RectangularPatchHarness.from_yaml(simulation_config_path)
 freqs = harness.freqs  
 
+
 os.makedirs("figs/simulation_overlays", exist_ok=True)
 
 
@@ -167,8 +169,8 @@ for tc_index, (tc_key, tc_data) in enumerate(all_results.items()):
         # label = (f"{cond_data['init_strategy'].replace('_', ' ').title()}, "
         #         f"n_curves={cond_data['n_curves']}, "
         #         f"n_designs={cond_data['n_designs']}")
-        label = (f"n_curves={cond_data['n_curves']}, "
-                f"n_designs={cond_data['n_designs']}")
+        label = (f"#curves={cond_data['n_curves']}, "
+                f"#designs={cond_data['n_designs']}")
         ax.plot(freqs / 1e9, simulated_s11_db, 
                 label=label, 
                 color=colors[cond_index],
@@ -183,34 +185,27 @@ for tc_index, (tc_key, tc_data) in enumerate(all_results.items()):
     )
     ax.plot(freqs / 1e9, ideal_curve, 
             label="Target Curve", 
-            color='black',  # Changed to black for better visibility
+            color='black',  
             linestyle='--', 
             linewidth=2,
             zorder=10)  # Ensure it's always on top
 
-    # Add subplot title
     subtitle = (f"Target: f0={target_curve_params['resonant_freqs'][0]/1e9:.1f} GHz, "
                f"BW={target_curve_params['bandwidths'][0]/1e6:.0f} MHz, "
                f"Depth={target_curve_params['depths_db'][0]} dB")
     ax.set_title(subtitle)
     
-    # Add grid and legend
     ax.grid(True, linestyle=':', alpha=0.3)
     ax.legend()
     
-    # Add labels
     ax.set_xlabel("Frequency (GHz)")
-    ax.set_ylabel("S11 (dB)")
+    ax.set_ylabel(r"$|S_{11}|_\text{dB}$")
 
-# Add overall title
-fig.suptitle("S11 Response Comparison: Target vs Simulated", fontsize=16, y=1.02)
 
-# Adjust spacing between subplots
 plt.tight_layout()
 
-# Save the plot
-plot_filename_pdf = "figs/simulation_overlays/combined_results.pdf"
-plot_filename_png = "figs/simulation_overlays/combined_results.png"
+plot_filename_pdf = "figs/experiments/inverse_design.pdf"
+plot_filename_png = "figs/experiments/inverse_designs.png"
 plt.savefig(plot_filename_pdf, dpi=300, bbox_inches='tight')
 plt.savefig(plot_filename_png, dpi=300, bbox_inches='tight')
 print(f"Combined plot saved to {plot_filename_pdf} and {plot_filename_png}")

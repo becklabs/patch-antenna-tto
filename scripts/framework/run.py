@@ -5,21 +5,21 @@ import os
 import numpy as np
 import torch
 
-from deepad.nn.datasets import RectangularPatchDataset
-from deepad.nn.decoder import ConvDecoder, SimpleFeedForwardDecoder
-from deepad.nn.encoder import ConvEncoder, SimpleFeedForwardEncoder
-from deepad.nn.losses import NLLHead
-from deepad.nn.utils import (load_checkpoint, load_config, load_data,
+from patchtto.nn.datasets import RectangularPatchDataset
+from patchtto.nn.decoder import ConvDecoder, SimpleFeedForwardDecoder
+from patchtto.nn.encoder import ConvEncoder, SimpleFeedForwardEncoder
+from patchtto.nn.losses import NLLHead
+from patchtto.nn.utils import (load_checkpoint, load_config, load_data,
                              set_device)
-from deepad.nn.vae import VAE, AdversarialVAE
-from deepad.search.criterion import OracleDesignScorer, SurogateDesignScorer
-from deepad.search.initialization import (ClosestCurveInitialization,
+from patchtto.nn.vae import VAE, AdversarialVAE
+from patchtto.search.criterion import OracleDesignScorer, SurogateDesignScorer
+from patchtto.search.initialization import (ClosestCurveInitialization,
                                           FixedRandomInitialization,
                                           KClosestCurveInitialization,
                                           RandomInitialization)
-from deepad.search.routines import find_curves, generate_design
-from deepad.signal import generate_s11_curve
-from deepad.simulation.harness import RectangularPatchHarness
+from patchtto.search.routines import find_curves, generate_design
+from patchtto.signal import generate_s11_curve
+from patchtto.simulation.harness import RectangularPatchHarness
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

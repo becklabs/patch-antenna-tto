@@ -44,7 +44,7 @@ class SweepManager:
     def _load_progress(self) -> Dict[str, Any]:
         """Load or initialize progress tracking."""
         if self.progress_file.exists():
-            with open(self.progress_file, "r") as f:
+            with open(self.progress_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         else:
             progress = {
@@ -60,7 +60,7 @@ class SweepManager:
     def _save_progress(self, progress: Dict[str, Any]):
         """Save current progress to file."""
         progress["last_update"] = datetime.now().isoformat()
-        with open(self.progress_file, "w") as f:
+        with open(self.progress_file, "w", encoding="utf-8") as f:
             json.dump(progress, f, indent=2)
 
     def _get_result_filename(self, config_id: int) -> Path:
@@ -115,11 +115,11 @@ class SweepManager:
             return {"frequency": freq, "s11": s11, "config": config.to_dict()}
 
         except Exception as e:
-            self.logger.error(f"Simulation failed for config {config.name}: {str(e)}")
+            self.logger.error("Simulation failed for config %s: %s", config.name, str(e))
             traceback.print_exc()
             return None
 
-    def run_simulations(self, batch_size: int = 100):
+    def run_simulations(self, batch_size: int = 1):
         """
         Run simulations for all configurations with checkpointing.
 
@@ -130,10 +130,10 @@ class SweepManager:
         total_configs = len(configs_df)
 
         self.logger.info(
-            f"Starting simulation batch with {total_configs} total configurations"
+            "Starting simulation batch with %d total configurations", total_configs
         )
         self.logger.info(
-            f"Previously completed: {len(self.progress['completed_configs'])}"
+            "Previously completed: %d", len(self.progress["completed_configs"])
         )
 
         try:
@@ -145,7 +145,8 @@ class SweepManager:
                     continue
 
                 self.logger.info(
-                    f"Running simulation {idx}/{total_configs} (Config ID: {config_id})"
+                    "Running simulation %d/%d (Config ID: %s)", 
+                    idx, total_configs, config_id
                 )
 
                 result = self._simulate_single_config(config)
@@ -160,7 +161,8 @@ class SweepManager:
                 if idx % batch_size == 0:
                     self._save_progress(self.progress)
                     self.logger.info(
-                        f"Progress saved. Completed {len(self.progress['completed_configs'])} simulations"
+                        "Progress saved. Completed %d simulations",
+                        len(self.progress["completed_configs"])
                     )
 
         except KeyboardInterrupt:

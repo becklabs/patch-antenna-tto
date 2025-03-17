@@ -6,7 +6,7 @@ import wandb
 from typing import Dict, Tuple
 import torch.nn as nn
 import logging
-from deepad.nn.datasets import RectangularPatchDataset
+from patchtto.nn.datasets import RectangularPatchDataset
 from torch.utils.data import DataLoader
 from pathlib import Path
 

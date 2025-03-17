@@ -78,8 +78,10 @@ def build_FDTD(
     substrate_kappa = 1e-3 * 2 * np.pi * 2.45e9 * EPS0 * substrate_epsR
 
     # Create FDTD
-    FDTD = openEMS(NrTS=30000, EndCriteria=1e-4)
+    FDTD = openEMS(NrTS=30000, EndCriteria=1e-3)
+    # FDTD = openEMS(NrTS=30000, EndCriteria=1e-4)
     FDTD.SetGaussExcite(f0, fc)
+    # FDTD.SetBoundaryCond(['PML_8'] * 6)
     FDTD.SetBoundaryCond(['MUR'] * 6)
 
     # Create CSX
@@ -87,7 +89,8 @@ def build_FDTD(
     FDTD.SetCSX(CSX)
     mesh = CSX.GetGrid()
     mesh.SetDeltaUnit(1e-3)
-    mesh_res = C0 / (f0 + fc) / 1e-3 / 20
+    mesh_res = C0 / (f0 + fc) / 1e-3 / 20 #
+    # mesh_res = C0 / (f0 + fc) / 1e-3 / 40 #
 
     # Initialize the mesh with the "air-box" dimensions
     mesh.AddLine('x', [-SimBox[0] / 2, SimBox[0] / 2])

@@ -54,8 +54,8 @@ else:
                     surrogate_config_path=surrogate_config_path,
                     init_strategy_name=init_strategy,
                     n_curves=n_curves,
-                    n_steps=None,   # Use config default
-                    lr=None,        # Use config default
+                    n_steps=None,   
+                    lr=None,        
                     optimize_design=optimize_design,
                     n_designs=n_designs,
                     scorer_type=scorer_type,
@@ -75,7 +75,7 @@ else:
 # We want to plot the average lowest score vs n_designs for both optimize_design=True and False.
 
 # Initialize structures to store results
-optimize_labels = {False: "Not Optimized (z fixed)", True: "Optimized (z variable)"}
+optimize_labels = {False: r"Not Optimized ($z_x$ fixed)", True: r"Optimized ($z_x$ variable)"}
 optimize_keys = ["optimize_false", "optimize_true"]
 
 # Collect scores from all target curves
@@ -88,8 +88,7 @@ for tc_key in all_results.keys():
             score = tc_data["data"][opt_key][str(nd)]
             strategy_scores[opt_key][nd].append(score)
 
-# Create the plot with academic styling
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(8, 4.8))
 plt.rcParams.update({
     'font.family': 'serif',
     'font.size': 12,
@@ -123,22 +122,18 @@ for idx, opt_key in enumerate(optimize_keys):
                      color=colors[idx],
                      alpha=0.15)
 
-plt.title("Performance vs Number of Designs Sampled")
 plt.xlabel("Number of Designs")
 plt.ylabel("Average Lowest Surrogate Score")
 
 plt.grid(True, linestyle=':', alpha=0.3, zorder=0)
 
-# Legend to the right side
-plt.legend(bbox_to_anchor=(1.02, 1),
-           loc='upper left',
+plt.legend(loc='upper right',
            frameon=True,
            edgecolor='none')
 
-plt.tight_layout(rect=[0, 0, 0.85, 1])
+plt.tight_layout(rect=[0, 0, 0.7, 1])
 
-# Save the plot
-plot_filename = "figs/plot_design_sampling_results.pdf"
+plot_filename = "figs/experiments/n_designs_scaling.pdf"
 os.makedirs(os.path.dirname(plot_filename), exist_ok=True)
 plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
 print(f"Plot saved to {plot_filename}")
