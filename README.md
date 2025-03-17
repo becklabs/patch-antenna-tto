@@ -2,10 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/) [![arXiv](https://img.shields.io/badge/arXiv-2303.00000-b31b1b.svg)](https://arxiv.org/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow.svg)](https://huggingface.co/)
 
----
 
 ## Overview
-This repository contains the code and experiments described in our paper **"Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization."**. We propose a two-stage inverse design framework for generating rectangular patch antennas that meet target frequency response specifications. Further, we show that leveraging search and optimization techniques at test-time improves the accuracy of the generated designs and enables consideration of auxiliary
+This repository implements the framework and experiments described in our paper **"Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization."**. We propose a two-stage inverse design framework for generating rectangular patch antennas that meet target frequency response specifications. Further, we show that leveraging search and optimization techniques at test-time improves the accuracy of the generated designs and enables consideration of auxiliary
 objectives such as manufacturability.
 
 <div align="center">
@@ -14,20 +13,6 @@ objectives such as manufacturability.
 </p>
 </div>
 
-The framework leverages generative deep learning models combined with test time optimization to efficiently perform inverse design of rectangular patch antennas. By integrating simulation, surrogate modeling, and optimization, the approach improves design quality and accelerates the overall design process.
-
-
-The repository implements a complete end-to-end framework for generative inverse design of rectangular patch antennas. Key components include:
-
-- **Generative Models:** Variational Autoencoders (VAEs) and Conditional VAEs (CVAEs) for learning low-dimensional representations of antenna design parameters and corresponding frequency responses (S11 curves).
-- **Test Time Optimization:** Optimization routines that refine latent vectors during inference to better match target S11 responses.
-- **Simulation Harness:** A simulation pipeline based on openEMS for evaluating the performance of generated designs.
-- **Surrogate Models:** Forward models that predict S11 responses and enable fast scoring during design search.
-- **Design Search & Experimentation:** Scripts to run inverse design experiments, study scaling with number of curves/designs, and compare surrogate vs. oracle scoring.
-
-This modular framework enables both rapid prototyping and rigorous evaluation, facilitating improvements in generative inverse design as presented in our paper.
-
----
 
 ## Setup
 
@@ -195,12 +180,9 @@ If you find this work useful, please consider citing our paper:
 
 This project is licensed under the MIT License. See the [LICENSE](https://chatgpt.com/c/LICENSE) file for details.
 
----
-
 ## Contact
 
-For questions or feedback, please open an issue or contact the maintainers at [your-email@example.com](mailto:your-email@example.com).
+For questions or feedback, please open an issue or contact [labash.b@northeastern.edu](mailto:labash.b@northeastern.edu).
 
----
 
 Happy designing!
