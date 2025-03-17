@@ -16,7 +16,7 @@ objectives such as manufacturability.
 
 ## Setup
 
-#### Install from Source
+### Install from Source
 
 1. **Clone the repository and navigate into its directory:**
     
@@ -32,7 +32,7 @@ objectives such as manufacturability.
 
     ```
 
-#### Install openEMS (optional)
+### Install openEMS (optional)
 To run the simulation harness, you will need to install `openEMS`. Detailed instructions can be found [here](https://openems.com/docs/install/). `openEMS` was successfully installed on Apple M2 via the following method:
 
 1. Update Homebrew
@@ -66,7 +66,9 @@ python setup.py build_ext -I /opt/homebrew/opt/openems/include -L /opt/homebrew/
 
 
 #### Login to Weights & Biases (optional)
-For tracking training experiments, you will need a [Weights & Biases](https://wandb.ai/site) account:
+For tracking training experiments, you will need a [Weights & Biases](https://wandb.ai/site) account.
+
+**Login into Weights and Biases:**
 
 ```bash
 wandb login
