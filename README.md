@@ -92,8 +92,6 @@ This project uses simulation and preprocessed data for training and evaluation. 
     ```
     
 
----
-
 ## Training
 
 The repository contains several training scripts for different components of the framework:
@@ -156,35 +154,25 @@ Study the effect of varying the number of latent curves or design samples:
     python scripts/experiments/n_designs_scaling.py
     ```
     
+## ️ Citation
+If you find our work helpful, please use the following citation.
 
-### Simulation Sweep
-
-Perform a simulation sweep over a range of rectangular patch configurations:
-
-```bash
-python scripts/simulation/run_sweep.py
 ```
-
-This script uses farthest point sampling to generate new design points within the convex hull of existing simulation data.
-
----
-
-## Citation
-
-If you find this work useful, please consider citing our paper:
-
-> **Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization**  
-> _Authors et al._, [Conference/Journal Name, Year]
-
----
+@misc{labash2025improving,
+      title={Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization}, 
+      author={Beck LaBash and Yashar Eshraghi and Alireza Shafaei and Luca Daniel},
+      year={2025},
+      eprint={2503.09000},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](https://chatgpt.com/c/LICENSE) file for details.
+MIT. Check [LICENSE](https://chatgpt.com/c/LICENSE) for details.
 
 ## Contact
 
 For questions or feedback, please open an issue or contact [labash.b@northeastern.edu](mailto:labash.b@northeastern.edu).
 
-
-Happy designing!
