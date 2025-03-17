@@ -10,7 +10,7 @@ objectives such as manufacturability.
 
 <div align="center">
 <p align="center">
-  <img src="figs/paper/framework.png" width="800px" alt="diagram">
+  <img src="figs/paper/framework.png" width="850px" alt="diagram">
 </p>
 </div>
 
