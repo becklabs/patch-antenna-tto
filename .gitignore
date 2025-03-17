@@ -1,4 +1,5 @@
 data/
+figs/debug/
 .DS_Store
 __pycache__/
 .mypy_cache/

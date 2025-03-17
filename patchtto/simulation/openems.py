@@ -1,12 +1,6 @@
 import os
-import tempfile
 import numpy as np
 from typing import Tuple
-import matplotlib.pyplot as plt
-
-from CSXCAD import ContinuousStructure
-from openEMS import openEMS
-from openEMS.physical_constants import *
 
 
 def build_FDTD(
@@ -75,6 +69,10 @@ def build_FDTD(
     - Uses MUR absorbing boundary conditions
     - Mesh resolution is automatically set to λ/20 at (f0 + fc)
     """
+    from CSXCAD import ContinuousStructure
+    from openEMS import openEMS
+    from openEMS.physical_constants import EPS0, C0
+    
     substrate_kappa = 1e-3 * 2 * np.pi * 2.45e9 * EPS0 * substrate_epsR
 
     # Create FDTD
