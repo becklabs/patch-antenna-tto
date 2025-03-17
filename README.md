@@ -65,7 +65,7 @@ python setup.py build_ext -I /opt/homebrew/opt/openems/include -L /opt/homebrew/
 ```
 
 
-#### Login to Weights & Biases (optional)
+### Login to Weights & Biases (optional)
 For tracking training experiments, you will need a [Weights & Biases](https://wandb.ai/site) account.
 
 **Login into Weights and Biases:**
