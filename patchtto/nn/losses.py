@@ -1,3 +1,4 @@
+import math
 import torch
 import numpy as np
 import torch.nn as nn
@@ -224,3 +225,18 @@ def beta_nll_loss(
         loss = loss.sum()  # Shape: scalar
 
     return loss
+
+def gaussian_nll(y_pred, mean, logvar):
+    """
+    Negative log likelihood for Gaussian distributions when using log-variance.
+    
+    Args:
+        y_pred: Predicted values
+        mean: Mean of the Gaussian distribution
+        logvar: Log-variance of the Gaussian distribution
+    
+    Returns:
+        Negative log likelihood
+    """
+    var = torch.exp(logvar)
+    return 0.5 * (torch.log(2 * torch.pi) + logvar + ((y_pred - mean)**2 / var))

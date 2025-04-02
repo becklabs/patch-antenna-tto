@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ..nn.losses import masked_loss
+from ..nn.losses import masked_loss, gaussian_nll
 from ..nn.vae import VAE, AdversarialVAE
 from ..nn.preprocessing import StandardScaler, MinMaxScaler
 from ..simulation.harness import SimulationHarness
@@ -188,13 +188,12 @@ class SurogateDesignScorer:
         mean = mean.squeeze()
         variance = variance.squeeze()
 
-        eps = 1e-10
-        weights = 1 / (variance + eps)
-        # weights = weights / torch.sum(weights * self.mask)
+        nll = gaussian_nll(y_pred=self.target_curve, mean=mean, logvar=variance)
+        # score = torch.sum(nll * self.mask)
 
         target_masked = self.target_curve * self.mask
         mean_masked = mean * self.mask
 
         score = torch.sum((mean_masked - target_masked) ** 2)
-        # score = torch.sum(weights * (mean_masked - target_masked) ** 2)
+
         return score.item()
