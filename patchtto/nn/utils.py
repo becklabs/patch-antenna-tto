@@ -158,6 +158,16 @@ def load_data(config):
     freq_response = np.load(
         os.path.join(config["data"]["data_dir"], "freq_response.npy")
     )
+
+    if config["data"]["resonance_threshold"] is not None:
+        resonance_mask = np.any(freq_response[:, :, 1] < float(config["data"]["resonance_threshold"]), axis=1)
+        design_params = design_params[resonance_mask]
+        freq_response = freq_response[resonance_mask]
+
+    if config["data"]["feed_threshold"] is not None:
+        feed_mask = np.abs(design_params[:, 2]) > float(config["data"]["feed_threshold"])
+        design_params = design_params[feed_mask]
+        freq_response = freq_response[feed_mask]
     return design_params, freq_response
 
 

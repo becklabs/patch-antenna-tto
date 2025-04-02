@@ -32,8 +32,19 @@ objectives such as manufacturability.
 
     ```
 
+### Download Dataset
+
+Our custom simulation dataset used for training and evaluation is available via [🤗 Datasets](https://huggingface.co/datasets/becklabash/rectangular-patch-antenna-freq-response).
+
+Run the following command from the root of the repository to download and preprocess the dataset:
+```bash
+python -m scripts.huggingface.download_dataset
+```
+
+This command will save the preprocessed dataset to `data/results/preprocessed_all/`, where the training and evaluation configurations expect to find it.
+
 ### Install openEMS (optional)
-To run the simulation harness, you will need to install `openEMS`. Detailed instructions can be found [here](https://openems.com/docs/install/). `openEMS` was successfully installed on Apple M2 via the following method:
+To run the simulation harness, you will need to install `openEMS`. Detailed instructions can be found [here](https://openems.com/docs/install/). `openEMS` was successfully installed on macOS Sonoma 14.5 (M2 Chip) via the following method:
 
 1. Update Homebrew
 ```bash
@@ -74,35 +85,9 @@ For tracking training experiments, you will need a [Weights & Biases](https://wa
 wandb login
 ```
 
-
-### Data Artifacts
-
-This project uses simulation and preprocessed data for training and evaluation. To run experiments:
-
-1. **Download the Preprocessed Data:** Download the provided `data_artifacts.zip` (or follow the instructions in the paper’s supplementary materials) and extract it to the `data/` directory at the repository root.
-    
-    ```bash
-    unzip /path/to/data_artifacts.zip -d data/
-    ```
-    
-2. **(Optional) Run the Simulation Preprocessing:** If you wish to generate your own simulation data, use the preprocessing script:
-    
-    ```bash
-    python scripts/simulation/preprocess.py --data_dirs data/results/sim_results2/ data/results/sim_results3/ --output_folder data/results/preprocessed_all_filtered_feed/
-    ```
-    
-
 ## Training
 
 The repository contains several training scripts for different components of the framework:
-
-### Design CVAE Training
-
-Train the Conditional VAE (CVAE) model for antenna design:
-
-```bash
-python scripts/design_cvae/train.py --config config/train/design_cvae.yaml
-```
 
 ### S11 VAE Training
 
@@ -112,9 +97,17 @@ Train the S11 VAE to learn representations of antenna frequency responses:
 python scripts/s11_vae/train.py --config config/train/s11_vae.yaml
 ```
 
-### Forward Model Training (Beta-NLL Loss)
+### Design CVAE Training
 
-Train the forward surrogate model for predicting S11 curves:
+Train the Conditional VAE (CVAE) model to learn a distribution of designs conditioned on a target S11 curve:
+
+```bash
+python scripts/design_cvae/train.py --config config/train/design_cvae.yaml
+```
+
+### Surrogate Model Training
+
+Train the forward surrogate model for approximating the EM simulation:
 
 ```bash
 python scripts/forward_model/train_betanll.py --config config/train/surrogate_nll.yaml

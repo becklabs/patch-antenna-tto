@@ -12,11 +12,11 @@ if not __name__ == "__main__":
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dirs', nargs='+', type=str, default=["data/results/sim_results2/", "data/results/sim_results3/"],
                     help="List of directories containing simulation results")
-parser.add_argument('--output_folder', type=str, default="data/results/preprocessed_all_filtered_feed/",
+parser.add_argument('--output_folder', type=str, default="data/results/test/preprocessed_all/",
                     help="Output folder name for processed results")
 parser.add_argument('--filter_resonances', action='store_true', default=False,
                     help="Whether to filter resonances")
-parser.add_argument('--filter_feed', action='store_true', default=True,
+parser.add_argument('--filter_feed', action='store_true', default=False,
                     help="Whether to filter feed positions")
 args = parser.parse_args()
 
