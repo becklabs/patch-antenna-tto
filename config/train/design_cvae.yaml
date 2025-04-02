@@ -11,6 +11,8 @@ data:
   design_params_file: "design_params.npy"
   freq_response_file: "freq_response.npy"
   train_split: 0.8
+  resonance_threshold: null # If defined, only use designs with S11 < resonance_threshold | null 
+  feed_threshold: null # If defined, only use designs with feed_y > feed_threshold | null 
 
 hyperparameters:
   num_epochs: 300       

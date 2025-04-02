@@ -13,3 +13,18 @@ disable_error_code = ["import-untyped"]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
+numpy = "^2.1.2"
+torch = "^2.5.1"
+matplotlib = "^3.9.2"
+pandas = "^2.2.3"
+scikit-learn = "^1.5.2"
+wandb = "^0.18.6"
+pyyaml = "^6.0.0"
+scipy = "^1.14.1"
+scikit-image = "^0.25.0"
+pytorch-tcn = "^1.2.1"
+joblib = "^1.4.2"
+datasets = "^3.4.1"
+
+[tool.poetry.dependencies]
+python = ">=3.8"

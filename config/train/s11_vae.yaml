@@ -7,10 +7,13 @@ device: 'auto'  #  'auto' | 'cpu' | 'cuda' | 'mps'
 seed: 42  
 
 data:
-  data_dir: "data/results/preprocessed_all_filtered/"  
+  data_dir: "data/results/preprocessed_all/"  
+  # data_dir: "data/results/preprocessed_all_filtered/"  
   design_params_file: "design_params.npy"
   freq_response_file: "freq_response.npy"
   train_split: 0.8
+  resonance_threshold: -20 # If defined, only use designs with S11 < resonance_threshold | null 
+  feed_threshold: null # If defined, only use designs with feed_y > feed_threshold | null 
 
 hyperparameters:
   num_epochs: 250       
