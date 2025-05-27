@@ -1,6 +1,6 @@
 # Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/) [![arXiv](https://img.shields.io/badge/arXiv-2303.00000-b31b1b.svg)](https://arxiv.org/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow.svg)](https://huggingface.co/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/) [![arXiv](https://img.shields.io/badge/arXiv-2505.18188-b31b1b.svg)](https://arxiv.org/abs/2505.18188) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow.svg)](https://huggingface.co/datasets/becklabash/rectangular-patch-antenna-freq-response)
 
 
 ## Overview
@@ -151,13 +151,14 @@ Study the effect of varying the number of latent curves or design samples:
 If you find our work helpful, please use the following citation.
 
 ```
-@misc{labash2025improving,
+@misc{labash2025improvinggenerativeinversedesign,
       title={Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization}, 
-      author={Beck LaBash and Yashar Eshraghi and Alireza Shafaei and Luca Daniel},
+      author={Beck LaBash and Shahriar Khushrushahi and Fabian Ruehle},
       year={2025},
-      eprint={2503.09000},
+      eprint={2505.18188},
       archivePrefix={arXiv},
-      primaryClass={cs.LG}
+      primaryClass={eess.SP},
+      url={https://arxiv.org/abs/2505.18188}, 
 }
 ```
 

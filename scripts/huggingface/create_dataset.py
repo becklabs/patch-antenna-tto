@@ -10,7 +10,7 @@ def create_and_upload_dataset(
     readme_path="README.md",
     figure_paths=["patch_antenna_diagram.png", "s11_example.png"],
     repo_id=None,  # Format: "username/dataset_name"
-    private=True,
+    private=False,
     token=None     # Hugging Face API token
 ):
     """
