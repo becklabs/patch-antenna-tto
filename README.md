@@ -147,20 +147,5 @@ Study the effect of varying the number of latent curves or design samples:
     python scripts/experiments/n_designs_scaling.py
     ```
     
-## ️ Citation
-If you find our work helpful, please use the following citation.
-
-```
-@misc{anonymous2025improvinggenerativeinversedesign,
-      title={Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization}, 
-      author={Anonymous Authors},
-      year={2025},
-      note={Under review}
-}
-```
-
-## License
-
-MIT. Check [LICENSE](https://chatgpt.com/c/LICENSE) for details.
 
 
