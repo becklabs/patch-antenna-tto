@@ -34,7 +34,7 @@ checkpoint:
   checkpoint_dir: "checkpoints/forward_model/v1_betanll/"
   resume_from_checkpoint: False
   resume_checkpoint: "model_epoch_499.pth"
-  run_path: "becklabs-northeastern-university/s11_reconstruction/pnl68on8"
+  run_path: "anonymous/s11_reconstruction/run_id"
 
 plots:
   num_examples: 10  # Number of examples to plot for reconstructed designs

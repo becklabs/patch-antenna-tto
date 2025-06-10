@@ -120,7 +120,7 @@ if __name__ == "__main__":
         import sys
         sys.exit(1)
     
-    your_username = "becklabash"
+    your_username = "ANONYMIZED_USERNAME"
     dataset_name = "rectangular-patch-antenna-freq-response"
     repo_id = f"{your_username}/{dataset_name}"
     

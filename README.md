@@ -1,6 +1,6 @@
 # Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/) [![arXiv](https://img.shields.io/badge/arXiv-2505.18188-b31b1b.svg)](https://arxiv.org/abs/2505.18188) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow.svg)](https://huggingface.co/datasets/becklabash/rectangular-patch-antenna-freq-response)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
 
 
 ## Overview
@@ -21,7 +21,7 @@ objectives such as manufacturability.
 1. **Clone the repository and navigate into its directory:**
     
     ```bash
-    git clone https://github.com/becklabs/patch-antenna-tto.git
+    git clone [ANONYMIZED_REPOSITORY_URL]
     cd patch-antenna-tto
     ```
     
@@ -34,7 +34,7 @@ objectives such as manufacturability.
 
 ### Download Dataset
 
-Our custom simulation dataset used for training and evaluation is available via [🤗 Datasets](https://huggingface.co/datasets/becklabash/rectangular-patch-antenna-freq-response).
+Our custom simulation dataset used for training and evaluation is available at [ANONYMIZED_DATASET_URL].
 
 Run the following command from the root of the repository to download and preprocess the dataset:
 ```bash
@@ -151,14 +151,11 @@ Study the effect of varying the number of latent curves or design samples:
 If you find our work helpful, please use the following citation.
 
 ```
-@misc{labash2025improvinggenerativeinversedesign,
+@misc{anonymous2025improvinggenerativeinversedesign,
       title={Improving Generative Inverse Design of Rectangular Patch Antennas with Test Time Optimization}, 
-      author={Beck LaBash and Shahriar Khushrushahi and Fabian Ruehle},
+      author={Anonymous Authors},
       year={2025},
-      eprint={2505.18188},
-      archivePrefix={arXiv},
-      primaryClass={eess.SP},
-      url={https://arxiv.org/abs/2505.18188}, 
+      note={Under review}
 }
 ```
 
@@ -166,7 +163,4 @@ If you find our work helpful, please use the following citation.
 
 MIT. Check [LICENSE](https://chatgpt.com/c/LICENSE) for details.
 
-## Contact
-
-For questions or feedback, please open an issue or contact [labash.b@northeastern.edu](mailto:labash.b@northeastern.edu).
 

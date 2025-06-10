@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 name = "deepad"
 version = "0.0.1"
 description = "Deep learning patch antenna design"
-authors = ["Beck LaBash <labash.b@northeastern.edu>"]
+authors = ["Anonymous"]
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]
